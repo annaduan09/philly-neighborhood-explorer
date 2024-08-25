@@ -12,11 +12,10 @@ library(shinythemes)
 #
 
 ui <- navbarPage(
-  theme = shinytheme("flatly"),
+  theme = shinytheme("cosmo"),
   collapsible = TRUE,
-  title = strong("Pennsylvania Housing Explorer"),
-  windowTitle = "PA Housing Data Explorer",
-  
+  title = strong("Philly Neighborhood Explorer"),
+  windowTitle = "Find your new neighborhood",
     tabPanel(
       "Neighborhood mapper",
       leafletOutput("leaflet", height = "100vh"),
@@ -53,7 +52,6 @@ ui <- navbarPage(
           selected = c("Deaths per million"),
           multiple = FALSE
         ),
-        
       ), mainPanel(tabsetPanel())
     ))
 )
