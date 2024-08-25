@@ -149,7 +149,8 @@ ui <- navbarPage(
             "Longtime residents" = "same_house_pct2022",
             "Majority Black" = "black_pct2022",
             "Majority Hispanic" = "hispanic_pct2022",
-            "Voucher-friendly" = "vouchers"
+            "Voucher-friendly" = "vouchers",
+            "Population" = "population2022"
           )),
           selected = c("Community" = "kids", "Amenities" = "restaurant"),
           multiple = TRUE,

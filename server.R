@@ -109,7 +109,7 @@ server <- function(input, output, session) {
       ) %>%
       addPolygons(
         data = nb,
-        fillColor = "cyan",
+        fillColor = "darkcyan",
         color = "white",
         weight = 1,
         opacity = 0.5,
