@@ -6,6 +6,7 @@ library(tigris)
 library(tidyverse)
 library(conflicted)
 library(mapview)
+library(scales)
 
 conflict_prefer("select", "dplyr")
 conflict_prefer("filter", "dplyr")
@@ -55,24 +56,53 @@ amenities <- st_read("data/tract/amenities_tract.geojson") %>%
   st_transform(crs = "EPSG:4326") %>%
   st_centroid()
 
+vouchers <- st_read("data/tract/vouchers_tract_2023.csv") %>%
+  mutate(count = 1) %>%
+  group_by(GEOID) %>%
+  summarise(vouchers = sum(count)) %>%
+  select(tract = GEOID, vouchers) %>%
+  filter(tract %in% tract_bounds$tract)
+
 ### Final
 dat_tract <- st_intersection(amenities, tract_bounds) %>%
   st_drop_geometry() %>%
   right_join(tract_bounds, by = "tract") %>%
   left_join(acs, by = "tract") %>%
+  left_join(vouchers, by = "tract") %>%
   st_as_sf() %>%
   rename(tract_neigh = nb_name)
   
-##### Export #####
+##### Merge #####
 bootleg_crosswalk <- tract_bounds %>%
   st_centroid() %>%
   st_intersection(zcta_bounds) %>%
   st_intersection(nb_bounds) %>%
   st_drop_geometry()
 
-tract_panel.sf <- dat_tract %>%
+dat_merge <- dat_tract %>%
   left_join(bootleg_crosswalk, by = "tract") %>%
   left_join(st_drop_geometry(dat_nb), by = "neighborhood") %>%
   left_join(st_drop_geometry(dat_zcta), by = "zip_code")
 
-write_sf(tract_panel.sf, "data/tract_panel.geojson", driver = "geojson")
+##### Scale #####
+to_scale <- c("entertainment", "kids", "nightlife", "restaurant", "beauty", "grocery", "shopping", "arts",                             
+              "education", "historic", "parks", "healthcare", "population2022", "median_age2022", "child_male2022",                    
+              "child_female2022", "child_pct2022", "female_pct2022",                    
+              "white_pct2022", "black_pct2022", "hispanic_pct2022",                  
+              "female_hh_pct2022", "public_asst_pct2022", "poverty_pct2022",                   
+              "medhhinc2022", "renter_pct2022", "vacancy_pct2022",                   
+              "same_house_pct2022", "same_county_move_pct2022", "dif_county_same_state_move_pct2022",
+              "dif_state_move_pct2022", "abroad_move_pct2022", "owner_housing_condition_pct2022",   
+              "renter_housing_condition_pct2022", "unemployed_pct2022", "race_ice2022",                      
+              "vouchers")
+
+dat_scale <- dat_merge %>%
+  mutate(across(all_of(to_scale), ~ as.numeric(.))) %>%
+  mutate(across(all_of(to_scale), ~ rescale(.x, to = c(0, 1))))
+
+dat_final <- dat_scale %>%
+  # replace NAs with 0
+  mutate(across(all_of(to_scale), ~ replace_na(.x, 0))) 
+  
+##### Export #####
+write_sf(dat_final, "data/dat_panel.geojson", driver = "geojson")

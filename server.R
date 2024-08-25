@@ -11,7 +11,7 @@ library(tidyverse)
 
 # Data intake
 nb <- st_read(
-  "/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/tract_panel.geojson"
+  "/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/dat_panel.geojson"
 ) %>%
   st_make_valid() %>%
   st_transform(crs = "EPSG:4326") 
@@ -33,7 +33,27 @@ nb_filt = reactive({
   nb %>%
     filter(neighborhood %in% input$neighborhoods)
 })
+
   ## Constraints: income/household size config -> expected contribution
+output$monthly_payment = renderText({
+  income = input$income
+  household_size = input$household_size
+  
+  if (income <= 167) {
+    return("$50")
+  }
+  else if (household_size <= 2) {
+    return(paste("$", round(0.28 * income/12), " to ", "$", round(0.4 * income/12), sep = ""))
+  }
+  else if (household_size <= 5) {
+    return(paste("$", round(0.27 * income/12), " to ", "$", round(0.4 * income/12), sep = ""))
+  }
+  else {
+    return(paste("$", round(0.26 * income/12), " to ", "$", round(0.4 * income/12), sep = ""))
+  }
+})
+
+
   ## Preferences: amenities types, demographics thresholds
   
   

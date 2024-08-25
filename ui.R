@@ -92,44 +92,102 @@ neighborhoods <- c("West Oak Lane", "Northwood", "Southwest Germantown", "Mayfai
 # 2. Constraints: income/work status, household size
 # 3. Preferences: amenities types, demographics
 
+
 ui <- navbarPage(
   theme = shinytheme("cosmo"),
   collapsible = TRUE,
   title = strong("Philly Neighborhood Explorer"),
   windowTitle = "Find your new neighborhood",
-    tabPanel(
-      "Neighborhood mapper",
-      tags$head(includeCSS("styles.css")),
-      leafletOutput("leaflet", height = "100vh"),
-      absolutePanel(
-        id = "controls",
-        class = "panel panel-default",
-        top = 110,
-        left = 55,
-        width = 250,
-        fixed = TRUE,
-        draggable = TRUE,
-        height = "auto",
-        h3("Philly Mapper"),
-        p(
-          "Select neighborhoods you're interested in exploring. The more neighborhoods you select, 
+  tabPanel(
+    tags$head(includeCSS("styles.css")),
+    leafletOutput("leaflet", height = "100vh"),
+    absolutePanel(
+      id = "controls",
+      class = "panel panel-default",
+      top = 110,
+      left = 55,
+      width = 250,
+      fixed = TRUE,
+      draggable = TRUE,
+      height = "auto",
+      h3("Neighborhood Filters"),
+      br(),
+      p(
+        "Select neighborhoods you're interested in exploring. The more neighborhoods you select,
           the more likely you are to find matches for your constraints and preferences."
+      ),
+      selectizeInput(
+        "neighborhoods",
+        "Neighborhoods I want to consider:",
+        choices = neighborhoods,
+        selected = c(
+          "Wynnefield",
+          "East Mount Airy",
+          "Roxborough",
+          "Manayunk",
+          "East Germantown",
+          "Wissahickon",
+          "Society Hill"
         ),
-        selectizeInput("neighborhoods", "Neighborhoods I'm considering:", choices = neighborhoods, 
-                       selected = c("Wynnefield", "East Mount Airy", "Roxborough", 
-                                    "Manayunk", "East Germantown", "Wissahickon", 
-                                    "Society Hill"), multiple = TRUE,
-                       options = NULL),
-        p(
-          "Tell us a bit about yourself to find neighborhoods where your expected contribution fits within your budget."
-        ),
-        # User enters income
-        sliderInput("income", "My household income:", value = 10000, min = 0, max = 39150),
-        # User selects household size
-        sliderInput("household_size", "People living with me:", value = 1, min = 1, max = 8),
-        # User enters monthly housing budget
-        numericInput("housing_budget", "Monthly housing budget:", value = 637, min = 50, max = 1890),
-        )),
+        multiple = TRUE,
+        options = NULL
+      ),
+      br(),
+      selectizeInput(
+        "amenities",
+        "I'm looking for:",
+        choices = list(
+          "Amenities" = list(
+            "Restaurants" = "restaurant",
+            "Grocery stores" = "grocery",
+            "Shopping" = "shopping",
+            "Parks" = "parks",
+            "Healthcare" = "healthcare"
+          ),
+          "Community" = list(
+            "Families" = "kids",
+            "Longtime residents" = "same_house_pct2022",
+            "Majority Black" = "black_pct2022",
+            "Majority Hispanic" = "hispanic_pct2022",
+            "Voucher-friendly" = "vouchers"
+          )),
+          selected = c("Community" = "kids", "Amenities" = "restaurant"),
+          multiple = TRUE,
+          options = NULL
+      )
+    ),
+    
+    absolutePanel(
+      id = "controls",
+      class = "panel panel-default",
+      top = 650,
+      left = 55,
+      width = 250,
+      fixed = TRUE,
+      draggable = TRUE,
+      height = "auto",
+      h3("Cost Calculator"),
+      # User enters income
+      sliderInput(
+        "income",
+        "My annual household income:",
+        value = 10000,
+        min = 0,
+        max = 39150
+      ),
+      # User selects household size
+      sliderInput(
+        "household_size",
+        "People living with me:",
+        value = 1,
+        min = 1,
+        max = 8
+      ),
+      
+      br(),
+      # Print expected contribution based on output$monthly_payment
+      strong("Estimated monthly cost:", textOutput("monthly_payment"))
+    )),
     
     tabPanel("About this tool", sidebarLayout(
       sidebarPanel(
