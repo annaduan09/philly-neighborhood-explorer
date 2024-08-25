@@ -7,7 +7,7 @@ library(tigris)
 
 # Data intake
 nb <- st_read(
-  "/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/neighborhood/phl_neighs_2024.geojson"
+  "/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/tract_panel.geojson"
 ) %>%
   st_make_valid() %>%
   st_transform(crs = "EPSG:4326") 
@@ -25,10 +25,9 @@ server <- function(input, output, session) {
   
   # Filtering logic
   ## Geography: map area
-# Filtering logic
 nb_filt = reactive({
   nb %>%
-    filter(MAPNAME %in% input$neighborhoods)
+    filter(neighborhood %in% input$neighborhoods)
 })
   ## Constraints: income/household size config -> expected contribution
   ## Preferences: amenities types, demographics thresholds
@@ -50,12 +49,28 @@ nb_filt = reactive({
         lat2 = 40.13799
       ) %>%
       addPolygons(
+        data = nb,
+        fillColor = "violet",
+        color = "white",
+        weight = 1,
+        opacity = 1,
+        fillOpacity = 0.1,
+        dashArray = "3",
+        highlightOptions = highlightOptions(
+          weight = 1,
+          color = "white",
+          dashArray = "",
+          fillOpacity = 0.1,
+          bringToFront = TRUE
+        )
+      ) %>%
+      addPolygons(
         data = nb_filt(),
         fillColor = "darkcyan",
         color = "white",
         weight = 1,
         opacity = 1,
-        fillOpacity = 0.3,
+        fillOpacity = 0.5,
         dashArray = "3",
         highlightOptions = highlightOptions(
           weight = 1,

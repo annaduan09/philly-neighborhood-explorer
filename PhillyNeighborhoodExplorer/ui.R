@@ -33,15 +33,13 @@ ui <- navbarPage(
         p(
           "Explore Philadelphia neighborhoods."
         ),
-        selectizeInput("neighborhoods", "Neighborhoods:", choices = nb$MAPNAME, selected = "Grays Ferry", multiple = TRUE,
-                       options = list(placeholder = 'select a state name')),
-        p(textOutput("indicator_desc_text")),
-        out =
-          img(src = 'logos.png', height = 120)
-      )
-    ),
+        selectizeInput("neighborhoods", "Neighborhoods:", choices = nb$neighborhood, 
+                       selected = c("Wynnefield", "East Mount Airy", "Roxborough", 
+                                    "Manayunk", "East Germantown", "Wissahickon", 
+                                    "Society Hill"), multiple = TRUE,
+                       options = NULL))),
     
-    tabPanel("Region plots", sidebarLayout(
+    tabPanel("About this tool", sidebarLayout(
       sidebarPanel(
         pickerInput(
           "outcome_select",
