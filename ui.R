@@ -113,7 +113,7 @@ ui <- navbarPage(
       h3("Neighborhood Filters"),
       br(),
       p(
-        "Select neighborhoods you're interested in exploring. The more neighborhoods you select,
+        "Select neighborhoods to explore. The more neighborhoods you select,
           the more likely you are to find matches for your constraints and preferences."
       ),
       selectizeInput(

@@ -7,65 +7,100 @@ library(sf)
 library(tidyverse)
 
 #### STATIC ####
-
-
 # Data intake
 nb <- st_read(
   "/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/dat_panel.geojson"
-) %>%
-  st_make_valid() %>%
-  st_transform(crs = "EPSG:4326") 
+)
 
-
-# Metadata
-## Display aliases
-## Variable unit
-## Variable prefixes
-## Variable suffixes
+colleges <- st_read("data/point/colleges.geojson")
+parks <- st_read("data/point/parks.geojson")
+cityhall <- st_read("data/point/cityhall.geojson")
 
 
 #### DYNAMIC ####
 server <- function(input, output, session) {
-  
   # Filtering logic
   ## Geography: map area
-nb_filt = reactive({
-  nb %>%
-    filter(neighborhood %in% input$neighborhoods)
-})
-
+  nb_filt = reactive({
+    nb_sel = nb %>%
+      filter(neighborhood %in% input$neighborhoods)
+  
+    amenities = input$amenities
+    denom = length(amenities)
+    nb_sel$neighborhood_score = 0
+    
+    for (amenity in amenities) {
+      nb_sel$neighborhood_score = nb_sel$neighborhood_score + nb_sel[[amenity]]
+    }
+    
+    nb_sel$neighborhood_score = nb_sel$neighborhood_score / denom
+    
+    return(nb_sel)
+  })
+  
   ## Constraints: income/household size config -> expected contribution
-output$monthly_payment = renderText({
-  income = input$income
-  household_size = input$household_size
+  output$monthly_payment = renderText({
+    income = input$income
+    household_size = input$household_size
+    
+    if (income <= 167) {
+      return("$50")
+    }
+    else if (household_size <= 2) {
+      return(paste(
+        "$",
+        round(0.28 * income / 12),
+        " to ",
+        "$",
+        round(0.4 * income / 12),
+        sep = ""
+      ))
+    }
+    else if (household_size <= 5) {
+      return(paste(
+        "$",
+        round(0.27 * income / 12),
+        " to ",
+        "$",
+        round(0.4 * income / 12),
+        sep = ""
+      ))
+    }
+    else {
+      return(paste(
+        "$",
+        round(0.26 * income / 12),
+        " to ",
+        "$",
+        round(0.4 * income / 12),
+        sep = ""
+      ))
+    }
+  })
   
-  if (income <= 167) {
-    return("$50")
-  }
-  else if (household_size <= 2) {
-    return(paste("$", round(0.28 * income/12), " to ", "$", round(0.4 * income/12), sep = ""))
-  }
-  else if (household_size <= 5) {
-    return(paste("$", round(0.27 * income/12), " to ", "$", round(0.4 * income/12), sep = ""))
-  }
-  else {
-    return(paste("$", round(0.26 * income/12), " to ", "$", round(0.4 * income/12), sep = ""))
-  }
-})
-
-
-  ## Preferences: amenities types, demographics thresholds
   
+  #### Leaflet map ####
+  palette <-
+    c("#F0F8FF", "#7EB7C0", "#0B7580")
   
+  # reactive palette
+  mapPalette <- reactive({
+    leaflet::colorQuantile(
+      na.color = "white",
+      palette = palette,
+      domain = NULL,
+      n = 3,
+      reverse = FALSE
+    )
+  })
   
-  # Leaflet map
   output$leaflet <- renderLeaflet({
     print("Rendering leaflet map")
-    leaflet(options = leafletOptions(minZoom = 7)) %>%
+    leaflet(options = leafletOptions(minZoom = 10)) %>%
       addProviderTiles(providers$CartoDB.Positron, group = "Light Theme") %>%
       setView(lng = -75.13406,
               lat = 40.00761,
-              zoom = 11) %>%
+              zoom = 12) %>%
       setMaxBounds(
         lng1 = -75.28027,
         lat1 = 39.867,
@@ -74,10 +109,10 @@ output$monthly_payment = renderText({
       ) %>%
       addPolygons(
         data = nb,
-        fillColor = "violet",
+        fillColor = "cyan",
         color = "white",
         weight = 1,
-        opacity = 1,
+        opacity = 0.5,
         fillOpacity = 0.1,
         dashArray = "3",
         highlightOptions = highlightOptions(
@@ -88,13 +123,31 @@ output$monthly_payment = renderText({
           bringToFront = TRUE
         )
       ) %>%
+      # City Hall
+      addMarkers(
+        data = cityhall$geometry,
+        popup = "City Hall",
+        icon = makeIcon(iconUrl = "www/cityhall.png", iconWidth = 50, iconHeight = 50)
+      ) %>%
+      # Parks
+      addMarkers(
+        data = parks$geometry,
+        popup = parks$name,
+        icon = makeIcon(iconUrl = "www/park.png", iconWidth = 20, iconHeight = 20)
+      ) %>%
+      # Colleges
+      addMarkers(
+        data = colleges$geometry,
+        popup = colleges$NAME,
+        icon = makeIcon(iconUrl = "www/college.png", iconWidth = 30, iconHeight = 30)
+      ) %>%
       addPolygons(
         data = nb_filt(),
-        fillColor = "darkcyan",
+        fillColor = ~mapPalette()(nb_filt()$neighborhood_score),
         color = "white",
         weight = 1,
         opacity = 1,
-        fillOpacity = 0.5,
+        fillOpacity = 0.8,
         dashArray = "3",
         highlightOptions = highlightOptions(
           weight = 1,
@@ -106,9 +159,4 @@ output$monthly_payment = renderText({
       )
     
   })
-  
-  # Colormapping
-  ## Palette
-  ## Dynamic binning
-  
 }

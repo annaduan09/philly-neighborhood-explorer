@@ -11,6 +11,19 @@ library(scales)
 conflict_prefer("select", "dplyr")
 conflict_prefer("filter", "dplyr")
 
+##### Point - no aggregation #####
+landmarks <- st_read("data/point/landmarks.geojson") %>%
+  st_transform(crs = "EPSG:4326") %>%
+  group_by(PARENT_NAME) %>%
+  slice_head(n = 1) %>%
+  select(NAME) %>%
+  st_centroid() %>%
+  # Get lng and lat
+  mutate(lng = st_coordinates(geometry)[, 1],
+         lat = st_coordinates(geometry)[, 2])
+
+write_sf(landmarks, "data/landmarks.geojson")
+
 ##### Neighborhood level #####
 ### Geometry
 nb_bounds <- st_read("data/neighborhood/phl_neighs_2024.geojson") %>%
