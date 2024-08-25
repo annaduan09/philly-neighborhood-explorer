@@ -22,6 +22,19 @@ nb <- st_read(
 
 #### DYNAMIC ####
 server <- function(input, output, session) {
+  
+  # Filtering logic
+  ## Geography: map area
+# Filtering logic
+nb_filt = reactive({
+  nb %>%
+    filter(MAPNAME %in% input$neighborhoods)
+})
+  ## Constraints: income/household size config -> expected contribution
+  ## Preferences: amenities types, demographics thresholds
+  
+  
+  
   # Leaflet map
   output$leaflet <- renderLeaflet({
     print("Rendering leaflet map")
@@ -37,7 +50,7 @@ server <- function(input, output, session) {
         lat2 = 40.13799
       ) %>%
       addPolygons(
-        data = nb,
+        data = nb_filt(),
         fillColor = "darkcyan",
         color = "white",
         weight = 1,
@@ -55,12 +68,8 @@ server <- function(input, output, session) {
     
   })
   
-  # Filtering logic
-  ## Geography: map area
-  ## Constraints: income/household size config -> expected contribution
-  ## Preferences: amenities types, demographics thresholds
-  
   # Colormapping
   ## Palette
   ## Dynamic binning
+  
 }

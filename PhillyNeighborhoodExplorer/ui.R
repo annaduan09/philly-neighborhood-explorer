@@ -1,10 +1,7 @@
-
-
 # load required packages
 library(shiny)
 library(shinyWidgets)
 library(shinythemes)
-library(shinydashboard)
 
 
 # INPUTS
@@ -36,31 +33,8 @@ ui <- navbarPage(
         p(
           "Explore Philadelphia neighborhoods."
         ),
-        selectInput(
-          "variable",
-          strong("Select an indicator"),
-          choices = list(
-            "Homeowners" = list(
-              "Homeownership rate (2022)" = "owner_occ_hh_pct2022",
-              "Median home value (2022)" = "med_home_value2022",
-              "Mortgage burdened households (2022)" = "mortgage_burdened_pct2022"
-            ),
-            "Renter households" = list(
-              "Rentership rate (2022)" = "renter_occ_hh_pct2022",
-              "Rent burdened households (2022)" = "rent_burdened_pct2022",
-              "Median gross rent (2022)" = "med_gross_rent2022"
-            ),
-            "Housing stock" = list(
-              "Vacant rental units (2022)" = "renter_vacant_pct2022",
-              "Median age of home (2022)" = "med_age_home2022",
-              # "Affordable rent units available" = "afford_avail_units",
-              "Affordable housing shortage (2020)" = "housing_balance"
-            ),
-            "Other topics" = list("Households with internet access (2022)" = "internet_hh_pct2022")
-          ),
-          selected = "owner_occ_hh_pct2022"
-        ),
-        strong("About this indicator"),
+        selectizeInput("neighborhoods", "Neighborhoods:", choices = nb$MAPNAME, selected = "Grays Ferry", multiple = TRUE,
+                       options = list(placeholder = 'select a state name')),
         p(textOutput("indicator_desc_text")),
         out =
           img(src = 'logos.png', height = 120)
