@@ -9,11 +9,12 @@ library(tidyverse)
 #### STATIC ####
 # Data intake
 nb <- st_read(
-  "/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/dat_panel.geojson"
+  "data/dat_panel.geojson"
 )
 
 colleges <- st_read("data/point/colleges.geojson")
 parks <- st_read("data/point/parks.geojson")
+park_polys <- st_read("data/polygon/PPR_Properties.geojson")
 cityhall <- st_read("data/point/cityhall.geojson")
 
 
@@ -109,25 +110,17 @@ server <- function(input, output, session) {
       ) %>%
       addPolygons(
         data = nb,
-        fillColor = "darkcyan",
+        fillColor = "black",
         color = "white",
         weight = 1,
-        opacity = 0.5,
-        fillOpacity = 0.1,
-        dashArray = "3",
-        highlightOptions = highlightOptions(
-          weight = 1,
-          color = "white",
-          dashArray = "",
-          fillOpacity = 0.1,
-          bringToFront = TRUE
-        )
+        opacity = 0.1,
+        fillOpacity = 0.1
       ) %>%
       # City Hall
       addMarkers(
         data = cityhall$geometry,
         popup = "City Hall",
-        icon = makeIcon(iconUrl = "www/cityhall.png", iconWidth = 50, iconHeight = 50)
+        icon = makeIcon(iconUrl = "www/cityhall.png", iconWidth = 30, iconHeight = 30)
       ) %>%
       # Parks
       addMarkers(
@@ -149,13 +142,34 @@ server <- function(input, output, session) {
         opacity = 1,
         fillOpacity = 0.8,
         dashArray = "3",
+        popup = ~paste(
+          "<b>Neighborhood:</b> ",
+          neighborhood,
+          "<br>",
+          "<b>Score:</b> ",
+          neighborhood_score
+        ),
         highlightOptions = highlightOptions(
           weight = 1,
           color = "white",
           dashArray = "",
-          fillOpacity = 0.3,
-          bringToFront = TRUE
+          fillOpacity = 0.3
         )
+      ) %>%
+      addPolygons(
+        data = park_polys,
+        fillColor = "olivedrab",
+        color = "white",
+        weight = 1,
+        opacity = 0.1,
+        fillOpacity = 0.3,
+        highlightOptions = highlightOptions(
+          weight = 1,
+          color = "white",
+          fillOpacity = 0.5,
+          bringToFront = TRUE
+        ),
+        popup = park_polys$PUBLIC_NAME
       )
     
   })
