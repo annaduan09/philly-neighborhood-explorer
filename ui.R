@@ -75,10 +75,9 @@ ui <- navbarPage(
           "Community" = list(
             "Families" = "kids",
             "Longtime residents" = "same_house_pct2022",
-            "Majority Black" = "black_pct2022",
-            "Majority Hispanic" = "hispanic_pct2022",
             "Voucher-friendly" = "vouchers",
-            "Population" = "population2022"
+            "Population" = "population2022",
+            "Safety" = "shootings_100k"
           )),
           selected = c("Community" = "kids", "Amenities" = "restaurant"),
           multiple = TRUE,

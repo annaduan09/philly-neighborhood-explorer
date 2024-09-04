@@ -9,13 +9,14 @@ library(tidyverse)
 #### STATIC ####
 # Data intake
 nb <- st_read(
-  "data/dat_panel.geojson"
+  "data/panel.geojson"
 )
 
 colleges <- st_read("data/point/colleges.geojson")
 parks <- st_read("data/point/parks.geojson")
 park_polys <- st_read("data/polygon/PPR_Properties.geojson")
 cityhall <- st_read("data/point/cityhall.geojson")
+hospital <- st_read("data/point/Hospitals.geojson")
 
 
 #### DYNAMIC ####
@@ -120,19 +121,29 @@ server <- function(input, output, session) {
       addMarkers(
         data = cityhall$geometry,
         popup = "City Hall",
-        icon = makeIcon(iconUrl = "www/cityhall.png", iconWidth = 30, iconHeight = 30)
+        icon = makeIcon(iconUrl = "www/cityhall.png", iconWidth = 30, iconHeight = 30),
+        group = "City Hall"
       ) %>%
       # Parks
       addMarkers(
         data = parks$geometry,
         popup = parks$name,
-        icon = makeIcon(iconUrl = "www/park.png", iconWidth = 20, iconHeight = 20)
+        icon = makeIcon(iconUrl = "www/park.png", iconWidth = 20, iconHeight = 20),
+        group = "Parks"
       ) %>%
       # Colleges
       addMarkers(
         data = colleges$geometry,
         popup = colleges$NAME,
-        icon = makeIcon(iconUrl = "www/college.png", iconWidth = 30, iconHeight = 30)
+        icon = makeIcon(iconUrl = "www/college.png", iconWidth = 30, iconHeight = 30),
+        group = "Colleges"
+      ) %>%
+      # Hospitals
+      addMarkers(
+        data = hospital$geometry,
+        popup = hospital$HOSPITAL_NAME,
+        icon = makeIcon(iconUrl = "www/hospital.png", iconWidth = 30),
+        group = "Hospitals"
       ) %>%
       addPolygons(
         data = nb_filt(),
@@ -170,6 +181,11 @@ server <- function(input, output, session) {
           bringToFront = TRUE
         ),
         popup = park_polys$PUBLIC_NAME
+      ) %>%
+      # menu to toggle icon markers on and off
+      addLayersControl(
+        overlayGroups = c("City Hall", "Parks", "Colleges", "Hospitals"),
+        options = layersControlOptions(collapsed = FALSE)
       )
     
   })
