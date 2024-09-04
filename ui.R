@@ -73,9 +73,9 @@ ui <- navbarPage(
             "Healthcare" = "healthcare"
           ),
           "Community" = list(
-            "Families" = "kids",
+            "Families with kids" = "kids",
             "Longtime residents" = "same_house_pct2022",
-            "Voucher-friendly" = "vouchers",
+            "Voucher users" = "vouchers",
             "Population" = "population2022",
             "Safety" = "shootings_100k"
           )),

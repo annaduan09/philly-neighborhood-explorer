@@ -85,7 +85,7 @@ vouchers <- st_read("data/tract/vouchers_tract_2023.csv") %>%
 #   group_by(tract) %>%
 #   summarise(crime_incidents = n())
 
-shootings <- st_read("/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/point/shootings.geojson") %>%
+shootings <- st_read("data/point/shootings.geojson") %>%
   st_transform(crs = "EPSG:4326") %>%
   select(geometry) %>%
   st_intersection(tract_bounds) %>%
