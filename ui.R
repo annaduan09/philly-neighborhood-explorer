@@ -115,22 +115,5 @@ ui <- navbarPage(
       br(),
       # Print expected contribution based on output$monthly_payment
       strong("Estimated monthly cost:", textOutput("monthly_payment"))
-    )),
-    
-    tabPanel("About this tool", sidebarLayout(
-      sidebarPanel(
-        pickerInput(
-          "outcome_select",
-          "Outcome:",
-          choices = c(
-            "Deaths per million",
-            "Cases per million",
-            "Cases (total)",
-            "Deaths (total)"
-          ),
-          selected = c("Deaths per million"),
-          multiple = FALSE
-        ),
-      ), mainPanel(tabsetPanel())
     ))
 )

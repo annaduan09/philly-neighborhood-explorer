@@ -85,15 +85,16 @@ vouchers <- st_read("data/tract/vouchers_tract_2023.csv") %>%
 #   group_by(tract) %>%
 #   summarise(crime_incidents = n())
 
-shootings <- st_read("data/point/shootings.geojson") %>%
-  st_transform(crs = "EPSG:4326") %>%
-  select(geometry) %>%
-  st_intersection(tract_bounds) %>%
-  group_by(tract) %>%
-  summarise(shootings = n()) %>%
-  st_drop_geometry() 
-  
-st_write(shootings, "data/tract/shootings_tract.geojson", driver = "GeoJSON")
+# shootings <- st_read("data/point/shootings.geojson") %>%
+#   st_transform(crs = "EPSG:4326") %>%
+#   select(geometry) %>%
+#   st_intersection(tract_bounds) %>%
+#   group_by(tract) %>%
+#   summarise(shootings = n()) %>%
+#   st_drop_geometry() 
+#   
+# st_write(shootings, "data/tract/shootings_tract.geojson", driver = "GeoJSON")
+shootings <- st_read("data/tract/shootings_tract.geojson")
 
 ### Final
 dat_tract <- st_intersection(amenities, tract_bounds) %>%
