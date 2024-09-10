@@ -82,8 +82,8 @@ server <- function(input, output, session) {
   
   
   #### Leaflet map ####
-  palette <-
-    c("#F0F8FF", "#7EB7C0", "#0B7580")
+  palette <- "PuBu"
+    # c("#F0F8FF", "#7EB7C0", "#0B7580")
   
   # reactive palette
   mapPalette <- reactive({
@@ -91,7 +91,7 @@ server <- function(input, output, session) {
       na.color = "white",
       palette = palette,
       domain = NULL,
-      n = 3,
+      n = 5,
       reverse = FALSE
     )
   })
@@ -122,28 +122,32 @@ server <- function(input, output, session) {
         data = cityhall$geometry,
         popup = "City Hall",
         icon = makeIcon(iconUrl = "www/cityhall.png", iconWidth = 30, iconHeight = 30),
-        group = "City Hall"
+        group = "City Hall",
+        options = markerOptions(opacity = 0.4)
       ) %>%
       # Parks
       addMarkers(
         data = parks$geometry,
         popup = parks$name,
         icon = makeIcon(iconUrl = "www/park.png", iconWidth = 20, iconHeight = 20),
-        group = "Parks"
+        group = "Parks",
+        options = markerOptions(opacity = 0.4)
       ) %>%
       # Colleges
       addMarkers(
         data = colleges$geometry,
         popup = colleges$NAME,
         icon = makeIcon(iconUrl = "www/college.png", iconWidth = 30, iconHeight = 30),
-        group = "Colleges"
+        group = "Colleges",
+        options = markerOptions(opacity = 0.4)
       ) %>%
       # Hospitals
       addMarkers(
         data = hospital$geometry,
         popup = hospital$HOSPITAL_NAME,
         icon = makeIcon(iconUrl = "www/hospital.png", iconWidth = 30),
-        group = "Hospitals"
+        group = "Hospitals",
+        options = markerOptions(opacity = 0.4)
       ) %>%
       addPolygons(
         data = nb_filt(),
