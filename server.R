@@ -21,6 +21,9 @@ hospital <- st_read("data/point/Hospitals.geojson")
 
 #### DYNAMIC ####
 server <- function(input, output, session) {
+  
+  shinyalert("Welcome!", "This tool is designed to help you explore Philly neighborhoods based on your personal preferences. First tell us which neighborhoods you're considering, then select a few neighborhood attributes to get started. Happy searching!", type = "info")
+  
   # Filtering logic
   ## Geography: map area
   nb_filt = reactive({

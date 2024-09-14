@@ -76,14 +76,18 @@ vouchers <- st_read("data/tract/vouchers_tract_2023.csv") %>%
   select(tract = GEOID, vouchers) %>%
   filter(tract %in% tract_bounds$tract)
 
-# violent <- c('100', '200', '300', '400', '800', '1700', '2000', '1500')
-# crime <- st_read("/Users/annaduan/Desktop/GitHub/philly-neighborhood-explorer/data/point/crime\ 2024/incidents_part1_part2.shp") %>%
-#   st_transform(crs = "EPSG:4326") %>%
-#   filter(!is.na(point_x) & ucr_genera %in% violent) %>%
-#   select(geometry) %>%
-#   st_intersection(tract_bounds) %>%
-#   group_by(tract) %>%
-#   summarise(crime_incidents = n())
+violent <- c('100', '200', '300', '400', '800', '1700', '2000', '1500')
+crime <- st_read("https://phl.carto.com/api/v2/sql?filename=incidents_part1_part2&format=csv&q=SELECT%20*%20,%20ST_Y(the_geom)%20AS%20lat,%20ST_X(the_geom)%20AS%20lng%20FROM%20incidents_part1_part2%20WHERE%20dispatch_date_time%20%3E=%20%272023-01-01%27%20AND%20dispatch_date_time%20%3C%20%272024-01-01%27") %>%
+  sample_n(size = 2000) %>%
+  filter(!is.na(point_x) & ucr_genera %in% violent) %>%
+  st_as_sf() %>%
+  st_transform(crs = "EPSG:4326") %>%
+  select(geometry) %>%
+  st_intersection(tract_bounds) %>%
+  group_by(tract) %>%
+  summarise(crime_incidents = n())
+
+st_write(crime, "data/tract/crime_tract.geojson", driver = "GeoJSON")
 
 # shootings <- st_read("data/point/shootings.geojson") %>%
 #   st_transform(crs = "EPSG:4326") %>%
@@ -94,12 +98,12 @@ vouchers <- st_read("data/tract/vouchers_tract_2023.csv") %>%
 #   st_drop_geometry() 
 #   
 # st_write(shootings, "data/tract/shootings_tract.geojson", driver = "GeoJSON")
-shootings <- st_read("data/tract/shootings_tract.geojson")
+# shootings <- st_read("data/tract/shootings_tract.geojson")
 
 ### Final
 dat_tract <- st_intersection(amenities, tract_bounds) %>%
   st_drop_geometry() %>%
-  left_join(shootings, by = "tract") %>%
+  left_join(crime, by = "tract") %>%
   left_join(acs, by = "tract") %>%
   left_join(vouchers, by = "tract") %>%
   left_join(tract_bounds, by = "tract") %>%
@@ -128,13 +132,13 @@ to_scale <- c("entertainment", "kids", "nightlife", "restaurant", "beauty", "gro
               "same_house_pct2022", "same_county_move_pct2022", "dif_county_same_state_move_pct2022",
               "dif_state_move_pct2022", "abroad_move_pct2022", "owner_housing_condition_pct2022",   
               "renter_housing_condition_pct2022", "unemployed_pct2022", "race_ice2022",                      
-              "vouchers", "shootings_100k")
+              "vouchers", "vcrime_100k")
 
 dat_scale <- dat_merge %>%
-  mutate(shootings_100k = ifelse(shootings != 0 & !is.na(shootings) & !is.na(as.numeric(population2022)) & as.numeric(population2022) != 0, 10000*shootings/as.numeric(population2022), 0),
+  mutate(vcrime_100k = ifelse(crime_incidents != 0 & !is.na(crime_incidents) & !is.na(as.numeric(population2022)) & as.numeric(population2022) != 0, 10000*crime_incidents/as.numeric(population2022), 0),
          across(all_of(to_scale), ~ as.numeric(.))) %>%
   mutate(across(all_of(to_scale), ~ rescale(.x, to = c(0, 1)))) %>%
-  mutate(across(c(poverty_pct2022, vacancy_pct2022, shootings_100k), ~ 1 - .x)) #flip undesirable scores
+  mutate(across(c(poverty_pct2022, vacancy_pct2022, vcrime_100k), ~ 1 - .x)) #flip undesirable scores
 
 dat_final <- dat_scale %>%
   # replace NAs with 0

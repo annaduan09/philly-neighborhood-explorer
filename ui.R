@@ -5,6 +5,7 @@ library(shinythemes)
 library(leaflet)
 library(sf)
 library(tidyverse)
+library(shinyalert)
 
 # Define neighborhoods grouped by region
 north_neighborhoods <- c("Upper Kensington", "Richmond", "Frankford", "Juniata Park", "Northwood", "Harrowgate", "Hunting Park", "Nicetown", "Tioga", "Feltonville", "Logan")
@@ -15,6 +16,7 @@ center_city_neighborhoods <- c("Rittenhouse", "Logan Square", "Chinatown", "Soci
 south_neighborhoods <- c("South Philadelphia", "Point Breeze", "Girard Estates", "Passyunk Square", "Whitman")
 southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick")
 
+useShinyalert()
 
 # INPUTS
 # 1. Geography: choose neighborhoods or skip
