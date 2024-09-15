@@ -7,17 +7,6 @@ library(sf)
 library(tidyverse)
 library(shinyalert)
 
-# Define neighborhoods grouped by region
-north_neighborhoods <- c("Upper Kensington", "Richmond", "Frankford", "Juniata Park", "Northwood", "Harrowgate", "Hunting Park", "Nicetown", "Tioga", "Feltonville", "Logan")
-northwest_neighborhoods <- c("West Oak Lane", "East Oak Lane", "Chestnut Hill", "Germantown", "Roxborough", "Manayunk", "Mount Airy")
-northeast_neighborhoods <- c("Mayfair", "Tacony", "Holmesburg", "Fox Chase", "Bustleton", "Somerton", "Oxford Circle", "Rhawnhurst")
-west_neighborhoods <- c("University City", "Wynnefield", "Overbrook", "Cobbs Creek", "Walnut Hill", "Spruce Hill")
-center_city_neighborhoods <- c("Rittenhouse", "Logan Square", "Chinatown", "Society Hill", "Washington Square West")
-south_neighborhoods <- c("South Philadelphia", "Point Breeze", "Girard Estates", "Passyunk Square", "Whitman")
-southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick")
-
-useShinyalert()
-
 # INPUTS
 # 1. Geography: choose neighborhoods or skip
 # 2. Constraints: income/work status, household size
@@ -41,50 +30,15 @@ ui <- navbarPage(
       fixed = TRUE,
       draggable = TRUE,
       height = "auto",
-      h3("Neighborhood Filters"),
+      h3("My Search"),
       br(),
-      p(
-        "Select neighborhoods to explore. The more neighborhoods you select,
-          the more likely you are to find matches for your constraints and preferences."
-      ),
-      selectizeInput(
-        "neighborhoods",
-        "Neighborhoods I want to consider:",
-        choices = list(
-          "North" = north_neighborhoods,
-          "Northwest" = northwest_neighborhoods,
-          "Northeast" = northeast_neighborhoods,
-          "West" = west_neighborhoods,
-          "Center City" = center_city_neighborhoods,
-          "South" = south_neighborhoods,
-          "Southwest" = southwest_neighborhoods),
-        selected = c("West" = "Wynnefield"),
-        multiple = TRUE,
-        options = NULL
-      ),
+      strong("Neighborhoodss:"),
+      p(textOutput("neighborhoods")),
+      actionLink("update_neighs", "Update neighborhoods"),
       br(),
-      selectizeInput(
-        "amenities",
-        "I'm looking for:",
-        choices = list(
-          "Amenities" = list(
-            "Restaurants" = "restaurant",
-            "Grocery stores" = "grocery",
-            "Shopping" = "shopping",
-            "Parks" = "parks",
-            "Healthcare" = "healthcare"
-          ),
-          "Community" = list(
-            "Families with kids" = "kids",
-            "Longtime residents" = "same_house_pct2022",
-            "Voucher users" = "vouchers",
-            "Population" = "population2022",
-            "Safety" = "shootings_100k"
-          )),
-          selected = c("Community" = "kids", "Amenities" = "restaurant"),
-          multiple = TRUE,
-          options = NULL
-      )
+      strong("Amenities:"),
+      p(textOutput("amenities")),
+      actionLink("update_prefs", "Update amenities")
     ),
     
     absolutePanel(
