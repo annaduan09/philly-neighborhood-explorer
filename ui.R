@@ -32,13 +32,13 @@ ui <- navbarPage(
       height = "auto",
       h3("My Search"),
       br(),
-      strong("Neighborhoodss:"),
+      strong("Neighborhoods:"),
       p(textOutput("neighborhoods")),
-      actionLink("update_neighs", "Update neighborhoods"),
+      actionLink("update_neighs", "Update"),
       br(),
       strong("Amenities:"),
       p(textOutput("amenities")),
-      actionLink("update_prefs", "Update amenities")
+      actionLink("update_prefs", "Update")
     ),
     
     absolutePanel(

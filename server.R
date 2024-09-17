@@ -37,11 +37,14 @@ server <- function(input, output, session) {
   shinyalert(html = TRUE, "Welcome!", 
              "This tool is designed to help you explore Philly neighborhoods you'd like to live in. 
              We're going to ask you a few questions about where you'd like to live and what you are looking for in a neighborhood. 
-             Based on that, we'll suggest some areas for you to consider. Happy searching!",
+             Based on that, we'll suggest some areas for you to consider. 
+             
+             Happy searching!",
              size = "s",
-             confirmButtonText = "Let's get started",
+             confirmButtonText = "OK",
              confirmButtonCol = "#AEDEF4",
-             imageUrl = "www/welcome.png",
+             imageUrl ="https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true",
+             imageWidth = 300,
              closeOnEsc = TRUE,
              closeOnClickOutside = TRUE
              )
@@ -101,19 +104,57 @@ server <- function(input, output, session) {
                )
              ))
   
-  # alert - expected cost calculator and landmark toggles
-  shinyalert(html = TRUE, "Calculate expected voucher cost",
+  # alert - expected cost calculator
+  shinyalert(html = TRUE, 
+             closeOnEsc = TRUE,
+             closeOnClickOutside = TRUE,
+             "Calculate expected voucher cost",
              "To calculate how much you will have to contribute to your voucher unit's monthly rent, 
              enter your household size (who will be living in your voucher unit) and your monthly income into
              the cost calculator tool to the left of the screen",
              type = "info")
   
+  # alert - toggle landmarks on and off
+  shinyalert(html = TRUE,
+             closeOnEsc = TRUE,
+             closeOnClickOutside = TRUE,
+             "Landmark Icons",
+             "You can toggle the visibility of landmarks on the map by clicking the checkboxes on the top 
+             right of the screen. Click on icons to see more information about each landmark.",
+             type = "info")
+  
+  # alert - all set
+  shinyalert(html = TRUE,
+             closeOnEsc = TRUE,
+             closeOnClickOutside = TRUE,
+             "All set!",
+             "Based on your preferences, we have a few areas you might be interested in. If you need to update
+             your selections, you can do so at any time. Simnply click on the 'Update' links under Your Search.",
+             confirmButtonText = "Show me my neighborhoods",
+             type = "success")
+  
+  
+  # print selected neighborhoods
   output$neighborhoods <- renderText({
-  input$neighborhoods
+    neigh = "All" 
+    
+    # Safely check if the "neigh_all" button is clicked or if neighborhoods are NULL
+    if (isTRUE(input$neigh_all) || is.null(input$neighborhoods) || length(input$neighborhoods) == 0) {
+      neigh = "All"
+    } else {
+      neigh = paste(input$neighborhoods, collapse = ", ")
+    }
+    
+    return(neigh)
   })
   
+  
+  # print selected amenities
   output$amenities <- renderText({
-    input$amenities
+    selected_amenities <- input$amenities
+    
+    return(paste(selected_amenities, collapse = ", "))
+
   })
   
   observeEvent(input$update_neighs, {
@@ -169,22 +210,45 @@ server <- function(input, output, session) {
   # Filtering logic
   ## Geography: map area
   nb_filt = reactive({
-    nb_sel = nb %>%
-      filter(neighborhood %in% input$neighborhoods)
-  
-    amenities = input$amenities
-    denom = length(amenities)
-    nb_sel$neighborhood_score = 0
+    nb_sel <- nb
     
-    for (amenity in amenities) {
-      nb_sel$neighborhood_score = nb_sel$neighborhood_score + nb_sel[[amenity]]
+    # Check for neighborhood input validity
+    if (isTRUE(input$neigh_all)) { # if "neigh_all" is true, select all
+      nb_sel <- nb
+    } else if (!is.null(input$neighborhoods) && length(input$neighborhoods) > 0) { # if neighborhoods input has value
+      nb_sel <- nb %>%
+        filter(neighborhood %in% input$neighborhoods)
+    } else {
+      nb_sel <- nb # default to all neighborhoods if no input
+      print("No neighborhood selected")
     }
     
-    nb_sel$neighborhood_score = nb_sel$neighborhood_score / denom
+    # Additional logic for amenities
+    amenities <- input$amenities
+    denom <- length(amenities)
+    nb_sel$neighborhood_score <- 0
+    
+    # Only calculate if there are amenities
+    if (denom > 0) {
+      for (amenity in amenities) {
+        nb_sel$neighborhood_score <- nb_sel$neighborhood_score + (nb_sel[[amenity]] / denom)
+      }
+    } else {
+      nb_sel$neighborhood_score <- nb_sel$population2022
+    }
     
     return(nb_sel)
   })
   
+  # # when input$neigh_all button is pressed, update nb_filt() to return all neighborhoods
+  # observeEvent(input$neigh_all, {
+  #   # Recalculate the reactive function when the button is pressed
+  #   nb_filt()
+  # })
+  
+  observeEvent(input$neigh_all, {
+    updateSelectInput(session, "neighborhoods", selected = unique(nb$neighborhood))
+  })
   
   
   ## Constraints: income/household size config -> expected contribution
@@ -229,15 +293,14 @@ server <- function(input, output, session) {
   
   
 #####  Leaflet map #####
-  palette <- "PuBu"
-    # c("#F0F8FF", "#7EB7C0", "#0B7580")
+  palette <- "YlGnBu"
   
   # reactive palette
   mapPalette <- reactive({
     leaflet::colorQuantile(
       na.color = "white",
       palette = palette,
-      domain = NULL,
+      domain = nb_filt()$neighborhood_score,
       n = 5,
       reverse = FALSE
     )
@@ -246,7 +309,7 @@ server <- function(input, output, session) {
   output$leaflet <- renderLeaflet({
     print("Rendering leaflet map")
     leaflet(options = leafletOptions(minZoom = 10)) %>%
-      addProviderTiles(providers$CartoDB.Positron, group = "Light Theme") %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
       setView(lng = -75.13406,
               lat = 40.00761,
               zoom = 12) %>%
@@ -259,7 +322,6 @@ server <- function(input, output, session) {
       addPolygons(
         data = nb,
         fillColor = "black",
-        color = "white",
         weight = 1,
         opacity = 0.1,
         fillOpacity = 0.1
@@ -308,9 +370,8 @@ server <- function(input, output, session) {
           "<b>Neighborhood:</b> ",
           neighborhood,
           "<br>",
-          "<b>Score:</b> ",
-          neighborhood_score
-        ),
+          "<b>% Match:</b> ",
+          neighborhood_score),
         highlightOptions = highlightOptions(
           weight = 1,
           color = "white",
