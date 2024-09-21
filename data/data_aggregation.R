@@ -142,7 +142,8 @@ dat_scale <- dat_merge %>%
 
 dat_final <- dat_scale %>%
   # replace NAs with 0
-  mutate(across(all_of(to_scale), ~ replace_na(.x, 0))) 
+  mutate(across(all_of(to_scale), ~ replace_na(.x, 0))) %>%
+  erase_water()
   
 ##### Export #####
 write_sf(dat_final, "data/panel.geojson", driver = "geojson")

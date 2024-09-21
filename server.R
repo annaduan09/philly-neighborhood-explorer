@@ -20,12 +20,27 @@ hospital <- st_read("data/point/Hospitals.geojson")
 
 # Neighborhoods
 # Define neighborhoods grouped by region
-north_neighborhoods <- c("Richmond", "Frankford", "Juniata Park", "Northwood", "Harrowgate", "Hunting Park", "Nicetown", "Tioga", "Feltonville", "Logan")
-northwest_neighborhoods <- c("West Oak Lane", "East Oak Lane", "Chestnut Hill", "East Germantown", "Southwest Germantown", "Roxborough", "Manayunk", "Mount Airy")
-northeast_neighborhoods <- c("Mayfair", "Tacony", "Holmesburg", "Fox Chase", "Bustleton", "Somerton", "Oxford Circle", "Rhawnhurst")
-west_neighborhoods <- c("University City", "Wynnefield", "Overbrook", "Cobbs Creek", "Walnut Hill", "Spruce Hill")
-center_city_neighborhoods <- c("Rittenhouse", "Logan Square", "Chinatown", "Society Hill", "Washington Square West")
-south_neighborhoods <- c("South Philadelphia", "Point Breeze", "Girard Estates", "Passyunk Square", "Whitman")
+
+north_neighborhoods <- c("Richmond", "Frankford", "Juniata Park", "Northwood", 
+                         "Harrowgate", "Hunting Park", "Nicetown", "Tioga", 
+                         "Feltonville", "Logan")
+
+northwest_neighborhoods <- c("West Oak Lane", "East Oak Lane", "Chestnut Hill", 
+                             "East Germantown", "Southwest Germantown", "Roxborough", 
+                             "Manayunk", "West Mount Airy", "East Mount Airy")
+
+northeast_neighborhoods <- c("Mayfair", "Tacony", "Holmesburg", "Fox Chase", 
+                             "Bustleton", "Somerton", "Oxford Circle", "Rhawnhurst")
+
+west_neighborhoods <- c("University City", "Wynnefield", "Overbrook", 
+                        "Cobbs Creek", "Walnut Hill", "Spruce Hill")
+
+center_city_neighborhoods <- c("Rittenhouse", "Logan Square", "Chinatown", 
+                               "Society Hill", "Washington Square West")
+
+south_neighborhoods <- c("Point Breeze", "Girard Estates", "Passyunk Square", 
+                         "Whitman", "Lower Moyamensing")
+
 southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick")
 
 #### DYNAMIC ####
@@ -61,15 +76,15 @@ server <- function(input, output, session) {
                You can also choose to select all neighborhoods in a region or in the city using the buttons below.",
                choices = list(
                  "North" = north_neighborhoods,
-                 "Northwest" = northwest_neighborhoods,
                  "Northeast" = northeast_neighborhoods,
-                 "West" = west_neighborhoods,
-                 "Center City" = center_city_neighborhoods,
                  "South" = south_neighborhoods,
-                 "Southwest" = southwest_neighborhoods),
+                 "Southwest" = southwest_neighborhoods,
+                 "Center City" = center_city_neighborhoods,
+                 "West" = west_neighborhoods,
+                 "Northwest" = northwest_neighborhoods
+               ),
                selected = c("West" = "Wynnefield", "Northwest" = c("Germantown", "Roxborough")),
-               multiple = TRUE,
-               options = NULL
+               multiple = TRUE
              ),
              actionButton("neigh_all", "Select All")
                             ))
@@ -309,7 +324,7 @@ server <- function(input, output, session) {
   output$leaflet <- renderLeaflet({
     print("Rendering leaflet map")
     leaflet(options = leafletOptions(minZoom = 10)) %>%
-      addProviderTiles(providers$CartoDB.Positron) %>%
+      addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406,
               lat = 40.00761,
               zoom = 12) %>%
@@ -379,22 +394,6 @@ server <- function(input, output, session) {
           fillOpacity = 0.3
         )
       ) %>%
-      addPolygons(
-        data = park_polys,
-        fillColor = "olivedrab",
-        color = "white",
-        weight = 1,
-        opacity = 0.1,
-        fillOpacity = 0.3,
-        highlightOptions = highlightOptions(
-          weight = 1,
-          color = "white",
-          fillOpacity = 0.5,
-          bringToFront = TRUE
-        ),
-        popup = park_polys$PUBLIC_NAME
-      ) %>%
-      # menu to toggle icon markers on and off
       addLayersControl(
         overlayGroups = c("City Hall", "Parks", "Colleges", "Hospitals"),
         options = layersControlOptions(collapsed = FALSE)
