@@ -12,53 +12,73 @@ conflicts_prefer(shinyjs::show)
 #### UI ####
 ui <- fluidPage(
   useShinyjs(),  # Initialize shinyjs
-  theme = shinytheme("flatly"),  # Apply a theme
   
-  # Custom CSS styles
+  # Include Google Fonts for a modern and playful look
   tags$head(
+    tags$link(
+      href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap",
+      rel = "stylesheet"
+    ),
     tags$style(HTML("
+      /* Apply the Poppins font throughout the app */
+      body, h1, h2, h3, h4, h5, h6, p, label, .btn {
+        font-family: 'Poppins', sans-serif;
+      }
+      
       /* Customize the header */
       h1, h2, h3 {
         color: #2C3E50;
+        font-weight: 600;
       }
+      
       /* Style the action buttons */
       .btn-custom {
-        background-color: #18BC9C;
-        color: #FFFFFF;
-        border: none;
-        font-size: 18px;
-        padding: 10px 20px;
-        margin-top: 20px;
-      }
-      .btn-custom:hover {
-        background-color: #148F77;
-      }
-      /* Style the selection buttons */
-      .btn-selection {
         background-color: #3498DB;
         color: #FFFFFF;
         border: none;
         font-size: 16px;
-        padding: 10px 20px;
-        margin: 10px;
+        padding: 12px 24px;
+        margin-top: 20px;
+        border-radius: 25px;
+        transition: background-color 0.3s ease;
       }
-      .btn-selection:hover {
+      .btn-custom:hover {
         background-color: #2980B9;
       }
+      
+      /* Style the selection buttons */
+      .btn-selection {
+        background-color: #18BC9C;
+        color: #FFFFFF;
+        border: none;
+        font-size: 14px;
+        padding: 10px 20px;
+        margin: 10px;
+        border-radius: 20px;
+        transition: background-color 0.3s ease;
+      }
+      .btn-selection:hover {
+        background-color: #148F77;
+      }
+      
       /* Style the radio buttons */
       .shiny-input-radiogroup label {
-        font-weight: normal;
+        font-weight: 500;
         font-size: 16px;
+        color: #34495E;
       }
+      
       /* Style the main content area */
       #main_content {
         margin-top: 30px;
       }
+      
       /* Style the welcome panel */
       #welcome_panel {
         text-align: center;
         margin-top: 50px;
       }
+      
       /* Add a footer */
       #footer {
         position: fixed;
@@ -68,32 +88,39 @@ ui <- fluidPage(
         color: white;
         text-align: center;
         padding: 10px;
+        font-size: 14px;
       }
+      
       /* Style for progress bar */
       .progress {
         margin-bottom: 20px;
         height: 20px;
+        border-radius: 10px;
+        overflow: hidden;
       }
       .progress-bar {
         background-color: #18BC9C;
       }
+      
       /* Style cards */
       .card {
         background-color: #FFFFFF;
-        padding: 20px;
-        border-radius: 5px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         margin-bottom: 30px;
       }
+      
       /* Indent neighborhoods */
       .neighborhood-checkbox {
         margin-left: 20px;
       }
+      
       /* Style for excluded neighborhoods list */
       .excluded-list {
         background-color: #F8F9FA;
         padding: 15px;
-        border-radius: 5px;
+        border-radius: 10px;
         max-height: 200px;
         overflow-y: auto;
         margin-top: 15px;
@@ -102,7 +129,7 @@ ui <- fluidPage(
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 5px 0;
+        padding: 8px 0;
         border-bottom: 1px solid #E9ECEF;
       }
       .excluded-item:last-child {
@@ -115,30 +142,89 @@ ui <- fluidPage(
         padding: 5px 10px;
         border-radius: 3px;
         cursor: pointer;
+        font-size: 12px;
       }
       .excluded-item button:hover {
         background-color: #C0392B;
       }
+      
       /* Style for selection buttons container */
       .selection-buttons {
         text-align: center;
         margin-top: 20px;
       }
+      
       /* Style for recommended neighborhoods list */
       .recommended-list {
         background-color: #F8F9FA;
         padding: 15px;
-        border-radius: 5px;
+        border-radius: 10px;
         max-height: 200px;
         overflow-y: auto;
         margin-top: 15px;
       }
       .recommended-item {
-        padding: 5px 0;
+        padding: 8px 0;
         border-bottom: 1px solid #E9ECEF;
+        color: #34495E;
       }
       .recommended-item:last-child {
         border-bottom: none;
+      }
+      
+      /* Enhance Leaflet map controls */
+      .leaflet-control {
+        font-family: 'Poppins', sans-serif;
+      }
+      
+      /* Adjust image responsiveness */
+      #welcome_panel img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 15px;
+        max-height: 300px; /* Limit the maximum height */
+      }
+      
+      /* Modal customizations */
+      .modal-header {
+        background-color: #3498DB;
+        color: white;
+        border-bottom: none;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+      }
+      .modal-footer {
+        border-top: none;
+      }
+      .modal-content {
+        border-radius: 15px;
+      }
+      
+      /* Adjust checkbox group labels */
+      .checkbox-group label {
+        font-size: 14px;
+        color: #34495E;
+      }
+      
+      /* Adjust action buttons in modals */
+      .modal .btn-custom, .modal .btn-selection {
+        margin-top: 10px;
+      }
+
+      /* Background Image Styling */
+      body::before {
+        content: '';
+        background-image: url('https://drexel.edu/~/media/Drexel/Core-Site-Group/Core/Images/life-at-drexel/philadelphia/philly-3200x1600/philly-3200x1600_160x53.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0.1; /* 10% opacity */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1; /* Ensure the image stays behind all content */
       }
     "))
   ),
@@ -147,15 +233,21 @@ ui <- fluidPage(
   div(
     id = "welcome_panel",
     h1("Welcome to Philly Neighborhood Explorer!"),
-    img(src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
-        height = "600px"),
+    img(
+      src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
+      class = "img-fluid",  # Bootstrap class for responsive images
+      alt = "Welcome Image"
+    ),
     br(),
     p("This tool helps you find Philadelphia neighborhoods where you can use your housing voucher."),
     p("We'll ask you a few questions to understand what you're looking for."),
     br(),
-    # Place the button under the text
-    actionButton("start_button", "Let's Get Started",
-                 class = "btn-custom")
+    # Center the button
+    div(
+      style = "text-align: center;",
+      actionButton("start_button", "Let's Get Started",
+                   class = "btn-custom")
+    )
   ),
   
   # Main Content Panel (initially hidden)
@@ -169,9 +261,10 @@ ui <- fluidPage(
   # Footer
   div(
     id = "footer",
-    p("© 2023 Philly Neighborhood Explorer")
+    p("© 2024 Philly Neighborhood Explorer")
   )
 )
+
 
 #### DATA ####
 # Load spatial data
