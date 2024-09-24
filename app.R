@@ -232,22 +232,25 @@ ui <- fluidPage(
   # Welcome Panel
   div(
     id = "welcome_panel",
-    h1("Welcome to Philly Neighborhood Explorer!"),
     img(
       src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
+      height = "40vh",
       class = "img-fluid",  # Bootstrap class for responsive images
       alt = "Welcome Image"
     ),
     br(),
-    p("This tool helps you find Philadelphia neighborhoods where you can use your housing voucher."),
+    h1("You got a voucher, now what?"),
+    p("Find Philadelphia neighborhoods where you can use your housing voucher."),
     p("We'll ask you a few questions to understand what you're looking for."),
     br(),
     # Center the button
     div(
       style = "text-align: center;",
-      actionButton("start_button", "Let's Get Started",
+      actionButton("start_button", "Get Started",
                    class = "btn-custom")
-    )
+    ),
+    br(),
+    strong("2 minutes"),
   ),
   
   # Main Content Panel (initially hidden)
@@ -267,7 +270,7 @@ ui <- fluidPage(
 
 
 #### DATA ####
-# Load spatial data
+# Load panel
 nb <- st_read("data/panel.geojson")  # Original dataset with multiple geometries per neighborhood
 
 # Ensure the 'neighborhood' column is character type
@@ -276,7 +279,7 @@ nb$neighborhood <- as.character(nb$neighborhood)
 # Transform CRS of 'nb' to WGS84 (EPSG:4326)
 nb <- st_transform(nb, crs = 4326)
 
-# Load the neighborhood boundaries for the exclusion selection map
+# Load the neighborhood boundaries
 neigh_bounds <- st_read("data/neighborhood/phl_neighs_2024.geojson")  # New dataset with single geometry per neighborhood
 
 # Assign 'neighborhood' column using 'MAPNAME'
@@ -308,6 +311,7 @@ south_neighborhoods <- c("Point Breeze", "Girard Estates", "Passyunk Square",
 
 southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick")
 
+
 # List of all neighborhoods and regions
 region_list <- list(
   "North" = north_neighborhoods,
@@ -318,6 +322,23 @@ region_list <- list(
   "South" = south_neighborhoods,
   "Southwest" = southwest_neighborhoods
 )
+
+# Neighborhood features to rank/filter neighborhoods on
+features <- c(
+  "Restaurants" = "restaurant",
+  "Grocery stores" = "grocery",
+  "Shopping" = "shopping",
+  "Parks" = "parks",
+  "Healthcare" = "healthcare",
+  "Families with kids" = "kids",
+  "Longtime residents" = "same_house_pct2022",
+  "Voucher users" = "vouchers",
+  "Population" = "population2022",
+  "Safety" = "shootings_100k"
+)
+
+
+features <- setNames(names(features), features)
 
 #### SERVER ####
 server <- function(input, output, session) {
@@ -484,9 +505,6 @@ server <- function(input, output, session) {
   
   # Navigation logic after Question 3
   observeEvent(input$see_results, {
-    # List of features for the importance question
-    features <- c("Safety", "Good Schools", "Public Transportation", "Parks and Recreation", "Shopping and Dining")
-    
     # Before proceeding, check if all preferences are selected
     preferences <- sapply(features, function(feature) {
       input[[paste0("importance_", gsub(" ", "_", feature))]]
@@ -701,7 +719,6 @@ server <- function(input, output, session) {
   
   # Render the importance selection UI
   output$importance_ui <- renderUI({
-    features <- c("Safety", "Good Schools", "Public Transportation", "Parks and Recreation", "Shopping and Dining")
     lapply(features, function(feature) {
       tagList(
         h4(feature),
@@ -715,6 +732,7 @@ server <- function(input, output, session) {
       )
     })
   })
+  
   
   # Handle removal of individual excluded neighborhoods
   observe({
