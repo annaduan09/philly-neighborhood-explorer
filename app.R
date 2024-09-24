@@ -6,6 +6,7 @@ library(shinythemes)  # For themes
 library(leaflet)      # For interactive maps
 library(bslib)        # For advanced theming and styling
 library(sf)           # For spatial data handling
+library(RColorBrewer) # For color palettes
 
 conflicts_prefer(shinyjs::show)
 
@@ -464,8 +465,6 @@ server <- function(input, output, session) {
     excluded_neighborhoods(c())
   })
   
-  # [Rest of the server code remains the same, including the neighborhood exclusion map functionality]
-  
   # Selection Method Buttons on Exclusion Page
   observeEvent(input$select_map, {
     showModal(modalDialog(
@@ -665,19 +664,58 @@ server <- function(input, output, session) {
   output$results_map <- renderLeaflet({
     req(current_question() == total_steps + 1)
     
-    # Collect user preferences
-    preferences <- sapply(names(features), function(feature_key) {
-      input[[paste0("importance_", gsub(" ", "_", feature_key))]]
-    }, simplify = FALSE)
+    # Collect user preferences and map to weights
+    preference_weights <- sapply(names(features), function(feature_key) {
+      response <- input[[paste0("importance_", gsub(" ", "_", feature_key))]]
+      if (response == "No") {
+        return(0)
+      } else if (response == "Yes") {
+        return(1)
+      } else if (response == "Very Much") {
+        return(2)
+      } else {
+        return(0)  # Default to 0 if no response
+      }
+    }, simplify = TRUE)
+    
+    names(preference_weights) <- names(features)
     
     # For debugging purposes
-    print(preferences)
+    print("User Preference Weights:")
+    print(preference_weights)
     
     # Get all excluded neighborhoods
     excluded_neighborhoods_current <- excluded_neighborhoods()
     
     # Exclude all geometries in 'nb' that have neighborhood names in excluded_neighborhoods
     recommended_data <- nb[!nb$neighborhood %in% excluded_neighborhoods_current, ]
+    
+    # Ensure all necessary feature columns are present and numeric
+    missing_features <- setdiff(names(features), colnames(recommended_data))
+    if (length(missing_features) > 0) {
+      stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
+    }
+    
+    # Drop geometry to avoid issues with non-numeric data
+    recommended_data_no_geom <- st_drop_geometry(recommended_data)
+    
+    # Extract feature data
+    feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
+    
+    # Convert feature columns to numeric and replace NAs with zeros
+    for (feature in names(features)) {
+      feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
+      feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
+    }
+    
+    # Multiply each feature column by the corresponding weight
+    weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
+    
+    # Compute the weighted sum
+    recommended_data$score <- rowSums(weighted_features)
+    
+    # Create color palette
+    pal <- colorNumeric(palette = "YlGnBu", domain = recommended_data$score)
     
     # Create the map
     leaflet(data = recommended_data,
@@ -693,48 +731,92 @@ server <- function(input, output, session) {
         lat2 = 40.13799
       ) %>%
       addPolygons(
-        fillColor = "darkcyan",
+        fillColor = ~pal(score),
         color = "white",
         dashArray = "3",
         weight = 1,
         opacity = 1,
         fillOpacity = 0.7,
-        label = ~neighborhood,
-        popup = ~paste0("<strong>", neighborhood, "</strong>"),
+        label = ~paste0(neighborhood, ": Score ", round(score, 2)),
+        popup = ~paste0("<strong>", neighborhood, "</strong><br/>Score: ", round(score, 2)),
         highlight = highlightOptions(
           weight = 2,
           color = "#666",
           fillOpacity = 0.9,
           bringToFront = TRUE
         )
-      )
+      ) %>%
+      addLegend("bottomright", pal = pal, values = ~score,
+                title = "Neighborhood Score",
+                opacity = 1)
   })
   
   # Generate and render the list of recommended neighborhoods
   output$recommended_neighborhoods <- renderUI({
     req(current_question() == total_steps + 1)
     
-    # Collect user preferences
-    preferences <- sapply(names(features), function(feature_key) {
-      input[[paste0("importance_", gsub(" ", "_", feature_key))]]
-    }, simplify = FALSE)
+    # Collect user preferences and map to weights
+    preference_weights <- sapply(names(features), function(feature_key) {
+      response <- input[[paste0("importance_", gsub(" ", "_", feature_key))]]
+      if (response == "No") {
+        return(0)
+      } else if (response == "Yes") {
+        return(1)
+      } else if (response == "Very Much") {
+        return(2)
+      } else {
+        return(0)  # Default to 0 if no response
+      }
+    }, simplify = TRUE)
+    
+    names(preference_weights) <- names(features)
     
     # For debugging purposes
-    print(preferences)
+    print("User Preference Weights:")
+    print(preference_weights)
     
-    # Here you would implement the logic to generate recommendations based on preferences
-    
-    # For demonstration, we'll proceed with existing data
     # Get all excluded neighborhoods
     excluded_neighborhoods_current <- excluded_neighborhoods()
     
     # Exclude all geometries in 'nb' that have neighborhood names in excluded_neighborhoods
     recommended_data <- nb[!nb$neighborhood %in% excluded_neighborhoods_current, ]
     
-    # Extract neighborhood names
-    recommended_neighborhoods <- unique(recommended_data$neighborhood)
+    # Ensure all necessary feature columns are present and numeric
+    missing_features <- setdiff(names(features), colnames(recommended_data))
+    if (length(missing_features) > 0) {
+      stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
+    }
     
-    renderRecommendedList(recommended_neighborhoods)
+    # Drop geometry to avoid issues with non-numeric data
+    recommended_data_no_geom <- st_drop_geometry(recommended_data)
+    
+    # Extract feature data
+    feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
+    
+    # Convert feature columns to numeric and replace NAs with zeros
+    for (feature in names(features)) {
+      feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
+      feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
+    }
+    
+    # Multiply each feature column by the corresponding weight
+    weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
+    
+    # Compute the weighted sum
+    recommended_data$score <- rowSums(weighted_features)
+    
+    # Aggregate scores by neighborhood (since nb may have multiple geometries per neighborhood)
+    neighborhood_scores <- aggregate(score ~ neighborhood, data = recommended_data, FUN = mean)
+    
+    # Sort neighborhoods by score in descending order
+    neighborhood_scores <- neighborhood_scores[order(-neighborhood_scores$score), ]
+    
+    # For debugging purposes
+    print("Neighborhood Scores:")
+    print(neighborhood_scores)
+    
+    # Render the list of recommended neighborhoods
+    renderRecommendedList(neighborhood_scores$neighborhood)
   })
 }
 
