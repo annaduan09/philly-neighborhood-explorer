@@ -23,11 +23,12 @@ ui <- fluidPage(
       /* Apply the Poppins font throughout the app */
       body, h1, h2, h3, h4, h5, h6, p, label, .btn {
         font-family: 'Poppins', sans-serif;
+        color: darkslategray;
       }
       
       /* Customize the header */
       h1, h2, h3 {
-        color: #2C3E50;
+        color: darkcyan;
         font-weight: 600;
       }
       
@@ -49,7 +50,7 @@ ui <- fluidPage(
       /* Style the selection buttons */
       .btn-selection {
         background-color: #18BC9C;
-        color: #FFFFFF;
+        color: darkslategray;
         border: none;
         font-size: 14px;
         padding: 10px 20px;
@@ -65,7 +66,7 @@ ui <- fluidPage(
       .shiny-input-radiogroup label {
         font-weight: 500;
         font-size: 16px;
-        color: #34495E;
+        color: darkslategray;
       }
       
       /* Style the main content area */
@@ -109,6 +110,19 @@ ui <- fluidPage(
         border-radius: 15px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         margin-bottom: 30px;
+      }
+      
+      /* Style question info text */
+      .question_info {
+        font-size: 14px;
+        color: darkgray;
+        margin-top: 10px;
+        background-color: #FFFFFF;
+        opacity: 0.5;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        width = 100%;
       }
       
       /* Indent neighborhoods */
@@ -232,7 +246,15 @@ ui <- fluidPage(
   # Welcome Panel
   div(
     id = "welcome_panel",
-    br(), br(), br(), br(),
+    img(
+      src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
+      class = "img-fluid",  # Bootstrap class for responsive images
+      height = "60vh",
+      width = "auto",
+      alt = "Welcome Image",
+      padding = "0vh",
+      margin = "0vh"
+    ),
     h1("You got a voucher, now what?"),
     br(),
     h4("Find Philadelphia neighborhoods where you can use your housing choice voucher."),
@@ -247,12 +269,6 @@ ui <- fluidPage(
     br(),
     p("This will take ~2 minutes"),
     br(),
-    img(
-      src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
-      class = "img-fluid",  # Bootstrap class for responsive images
-      style = "height: 80%; width: auto;",
-      alt = "Welcome Image"
-    )
   ),
   
   # Main Content Panel (initially hidden)
@@ -420,13 +436,14 @@ server <- function(input, output, session) {
             actionButton("next_button_q1", "Next", class = "btn-custom")
         ),
         div(class = "question_info",
-            img(src = "www/info.png", 
+            img(src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/info.png?raw=true", 
                 class = "img-fluid",  # Bootstrap class for responsive images
-                style = "height: 3%; width: auto;",
+                height = "40vh",
                 alt = "Welcome Image"),
             h4("Why we ask this question:"),
-            p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you. 
-              We'll use this information to exclude these areas from our recommendations.")
+            p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you."),
+            p("We'll use this information to exclude these areas from our recommendations."),
+            p("If you're not sure, or would like to consider all neighborhoods, you can skip this question."),
         ),
       )
     } else if (current_question() == 2) {
@@ -466,7 +483,7 @@ server <- function(input, output, session) {
         renderProgressBar(3),
         div(class = "card",
             h2("What's important to you in a neighborhood?"),
-            p("For each feature below, please select how important it is to you."),
+            p("For each feature below, please rate how important it is to you."),
             br(),
             uiOutput("importance_ui"),
             actionButton("see_results", "See Results", class = "btn-custom")
