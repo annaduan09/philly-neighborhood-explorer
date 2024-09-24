@@ -232,16 +232,11 @@ ui <- fluidPage(
   # Welcome Panel
   div(
     id = "welcome_panel",
-    img(
-      src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
-      height = "40vh",
-      class = "img-fluid",  # Bootstrap class for responsive images
-      alt = "Welcome Image"
-    ),
-    br(),
+    br(), br(), br(), br(),
     h1("You got a voucher, now what?"),
-    p("Find Philadelphia neighborhoods where you can use your housing voucher."),
-    p("We'll ask you a few questions to understand what you're looking for."),
+    br(),
+    h4("Find Philadelphia neighborhoods where you can use your housing choice voucher."),
+    h4("We'll ask you a few questions to understand what you're looking for."),
     br(),
     # Center the button
     div(
@@ -250,7 +245,14 @@ ui <- fluidPage(
                    class = "btn-custom")
     ),
     br(),
-    strong("2 minutes"),
+    p("This will take ~2 minutes"),
+    br(),
+    img(
+      src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
+      class = "img-fluid",  # Bootstrap class for responsive images
+      style = "height: 80%; width: auto;",
+      alt = "Welcome Image"
+    )
   ),
   
   # Main Content Panel (initially hidden)
@@ -416,7 +418,16 @@ server <- function(input, output, session) {
             radioButtons("exclude_areas", label = NULL, choices = c("Yes", "No"), inline = TRUE),
             br(),
             actionButton("next_button_q1", "Next", class = "btn-custom")
-        )
+        ),
+        div(class = "question_info",
+            img(src = "www/info.png", 
+                class = "img-fluid",  # Bootstrap class for responsive images
+                style = "height: 3%; width: auto;",
+                alt = "Welcome Image"),
+            h4("Why we ask this question:"),
+            p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you. 
+              We'll use this information to exclude these areas from our recommendations.")
+        ),
       )
     } else if (current_question() == 2) {
       # Question 2 UI (Exclusion Selection)
