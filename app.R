@@ -276,7 +276,7 @@ server <- function(input, output, session) {
         div(class = "question_info",
             img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
                 class = "img-fluid",
-                height = "10vh",
+                height = "200px",
                 alt = "Question Info Image"),
             h4("Why we ask this question:"),
             p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you."),
@@ -322,7 +322,7 @@ server <- function(input, output, session) {
         div(class = "question_info",
             img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
                 class = "img-fluid",
-                height = "10vh",
+                height = "200px",
                 alt = "Question Info Image"),
             h4("Why we ask this question:"),
             p("Selecting areas to exclude ensures that the recommended neighborhoods align with your preferences and requirements."),
@@ -338,6 +338,7 @@ server <- function(input, output, session) {
       current_question_text <- question_info_list[[current_feature_key]]$question
       current_info_text <- question_info_list[[current_feature_key]]$info
       feature_input_id <- paste0("importance_", gsub(" ", "_", current_feature_key))
+      image_src <- paste0(current_feature_key, ".png")  # Construct image filename
       
       tagList(
         # Progress Bar
@@ -361,10 +362,10 @@ server <- function(input, output, session) {
         ),
         # Question Info Card
         div(class = "question_info",
-            img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
+            img(src = image_src,  # Use feature-specific image
                 class = "img-fluid",
-                height = "10vh",
-                alt = "Question Info Image"),
+                height = "200px",
+                alt = paste0(current_feature_display, " Image")),
             h4("Why we ask this question:"),
             p(current_info_text)
         )
@@ -462,6 +463,8 @@ server <- function(input, output, session) {
     # Reset selections
     excluded_neighborhoods(c())
   })
+  
+  # [Rest of the server code remains the same, including the neighborhood exclusion map functionality]
   
   # Selection Method Buttons on Exclusion Page
   observeEvent(input$select_map, {
