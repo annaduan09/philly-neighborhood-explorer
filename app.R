@@ -28,9 +28,9 @@ ui <- fluidPage(
   div(
     id = "welcome_panel",
     img(
-      src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/welcome.png?raw=true", 
+      src = "welcome.png",  # Ensure 'welcome.png' is inside 'www' directory
       class = "img-fluid",  # Bootstrap class for responsive images
-      height = "60vh",
+      height = "80vh",
       width = "auto",
       alt = "Welcome Image",
       padding = "0vh",
@@ -66,7 +66,6 @@ ui <- fluidPage(
     p("© 2024 Philly Neighborhood Explorer")
   )
 )
-
 
 #### DATA ####
 # Load panel
@@ -110,7 +109,6 @@ south_neighborhoods <- c("Point Breeze", "Girard Estates", "Passyunk Square",
 
 southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick")
 
-
 # List of all neighborhoods and regions
 region_list <- list(
   "North" = north_neighborhoods,
@@ -123,21 +121,63 @@ region_list <- list(
 )
 
 # Neighborhood features to rank/filter neighborhoods on
+# Use column names as keys and display names as values
 features <- c(
-  "Restaurants" = "restaurant",
-  "Grocery stores" = "grocery",
-  "Shopping" = "shopping",
-  "Parks" = "parks",
-  "Healthcare" = "healthcare",
-  "Families with kids" = "kids",
-  "Longtime residents" = "same_house_pct2022",
-  "Voucher users" = "vouchers",
-  "Population" = "population2022",
-  "Safety" = "shootings_100k"
+  "restaurant" = "Restaurants",
+  "grocery" = "Grocery stores",
+  "shopping" = "Shopping",
+  "parks" = "Parks",
+  "healthcare" = "Healthcare",
+  "kids" = "Families with kids",
+  "same_house_pct2022" = "Longtime residents",
+  "vouchers" = "Voucher users",
+  "population2022" = "Population",
+  "shootings_100k" = "Safety"
 )
 
-
-features <- setNames(names(features), features)
+# List of questions and info texts
+question_info_list <- list(
+  "restaurant" = list(
+    question = "Do you want to live near places to eat out?",
+    info = "Living close to restaurants means you can easily go out to eat and have more choices."
+  ),
+  "grocery" = list(
+    question = "Is it important for you to live near grocery stores?",
+    info = "Living near grocery stores makes it easier to buy food and things you need every day."
+  ),
+  "shopping" = list(
+    question = "Do you want to live near shops and stores?",
+    info = "Being close to shops means you can easily buy what you need, and the neighborhood might feel more lively."
+  ),
+  "parks" = list(
+    question = "Is it important for you to live near parks or green spaces?",
+    info = "Living near parks gives you a place to relax, exercise, and enjoy fresh air."
+  ),
+  "healthcare" = list(
+    question = "Do you want to live close to hospitals or clinics?",
+    info = "Living near doctors or clinics makes it easier to see a doctor when you need to, especially if you need regular medical care."
+  ),
+  "kids" = list(
+    question = "Do you want to live in a neighborhood with other families who have children?",
+    info = "If you have kids, living near other families means your children can make friends nearby. It can also make the neighborhood feel safer."
+  ),
+  "same_house_pct2022" = list(
+    question = "Is it important for you to live where people have lived for a long time?",
+    info = "Neighborhoods with longtime residents often have a strong sense of community where neighbors know each other well."
+  ),
+  "vouchers" = list(
+    question = "Do you want to live in a place where other people use housing vouchers?",
+    info = "In neighborhoods with more voucher holders, it might be easier to find landlords who accept vouchers."
+  ),
+  "population2022" = list(
+    question = "Do you prefer busy neighborhoods or quieter ones?",
+    info = "Busy areas have more people and activities. Quieter areas have fewer people and might be more peaceful."
+  ),
+  "shootings_100k" = list(
+    question = "Is living in a safe neighborhood important to you?",
+    info = "A safe neighborhood has less crime and can help you feel more secure."
+  )
+)
 
 #### SERVER ####
 server <- function(input, output, session) {
@@ -145,18 +185,20 @@ server <- function(input, output, session) {
   observeEvent(input$start_button, {
     hide("welcome_panel")
     show("main_content")
+    current_question(1)  # Reset to first question
   })
   
   # Reactive value to keep track of the current question
   current_question <- reactiveVal(1)
   
+  # Total number of steps (questions)
+  total_steps <- 2 + length(features)  # 2 initial questions + number of features
+  
   # Reactive value to store all excluded neighborhoods
   excluded_neighborhoods <- reactiveVal(c())
   
   # Function to render progress bar
-  renderProgressBar <- function(step) {
-    total_steps <- 4  # Updated total steps/questions
-    percent <- (step / total_steps) * 100
+  renderProgressBar <- function(percent) {
     tags$div(class = "progress",
              tags$div(class = "progress-bar",
                       role = "progressbar",
@@ -205,32 +247,49 @@ server <- function(input, output, session) {
   
   # Render UI for the questions
   output$question_ui <- renderUI({
-    if (current_question() == 1) {
+    current_q <- current_question()
+    
+    # Total number of steps (including features)
+    total_steps <- 2 + length(features)  # 2 initial questions + number of features
+    
+    # Calculate progress percentage
+    progress_percent <- (current_q / (total_steps + 1)) * 100  # +1 for results page
+    
+    if (current_q == 1) {
       # Question 1 UI
-      fluidPage(
-        renderProgressBar(1),
+      tagList(
+        # Progress Bar
+        renderProgressBar(progress_percent),
+        # Question Card
         div(class = "card",
             h2("Are there any areas you wouldn't want to live in?"),
             br(),
             radioButtons("exclude_areas", label = NULL, choices = c("Yes", "No"), inline = TRUE),
             br(),
-            actionButton("next_button_q1", "Next", class = "btn-custom")
+            # Action Buttons
+            div(
+              actionButton("back_button", "Back", class = "btn-custom"),
+              actionButton("next_button_q1", "Next", class = "btn-custom", style = "margin-left: 10px;")
+            )
         ),
+        # Question Info Card
         div(class = "question_info",
-            img(src = "https://github.com/annaduan09/philly-neighborhood-explorer/blob/main/www/info.png?raw=true", 
-                class = "img-fluid",  # Bootstrap class for responsive images
-                height = "40vh",
-                alt = "Welcome Image"),
+            img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
+                class = "img-fluid",
+                height = "10vh",
+                alt = "Question Info Image"),
             h4("Why we ask this question:"),
             p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you."),
             p("We'll use this information to exclude these areas from our recommendations."),
-            p("If you're not sure, or would like to consider all neighborhoods, you can skip this question."),
-        ),
+            p("If you're not sure, or would like to consider all neighborhoods, you can skip this question.")
+        )
       )
-    } else if (current_question() == 2) {
+    } else if (current_q == 2) {
       # Question 2 UI (Exclusion Selection)
-      fluidPage(
-        renderProgressBar(2),
+      tagList(
+        # Progress Bar
+        renderProgressBar(progress_percent),
+        # Question Card
         div(class = "card",
             h2("Select Areas to Exclude"),
             br(),
@@ -248,32 +307,74 @@ server <- function(input, output, session) {
                      renderExcludedList(),
                      br(),
                      div(
-                       actionButton("add_more", "Add More Exclusions", class = "btn-custom"),
-                       actionButton("clear_all", "Clear All Exclusions", class = "btn-custom", style = "margin-left: 10px;")
+                       actionButton("clear_all", "Clear All Exclusions", class = "btn-custom")
                      )
               )
             ),
             br(),
-            # Next Button to proceed
-            actionButton("next_button_q2", "Next", class = "btn-custom")
+            # Action Buttons
+            div(
+              actionButton("back_button", "Back", class = "btn-custom"),
+              actionButton("next_button_q2", "Next", class = "btn-custom", style = "margin-left: 10px;")
+            )
+        ),
+        # Question Info Card
+        div(class = "question_info",
+            img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
+                class = "img-fluid",
+                height = "10vh",
+                alt = "Question Info Image"),
+            h4("Why we ask this question:"),
+            p("Selecting areas to exclude ensures that the recommended neighborhoods align with your preferences and requirements."),
+            p("This helps in providing more tailored and relevant suggestions.")
         )
       )
-    } else if (current_question() == 3) {
-      # Question 3 UI
-      fluidPage(
-        renderProgressBar(3),
+    } else if (current_q >= 3 && current_q <= 2 + length(features)) {
+      # Feature Importance Questions
+      feature_index <- current_q - 2
+      feature_keys <- names(features)
+      current_feature_key <- feature_keys[feature_index]
+      current_feature_display <- features[[current_feature_key]]
+      current_question_text <- question_info_list[[current_feature_key]]$question
+      current_info_text <- question_info_list[[current_feature_key]]$info
+      feature_input_id <- paste0("importance_", gsub(" ", "_", current_feature_key))
+      
+      tagList(
+        # Progress Bar
+        renderProgressBar(progress_percent),
+        # Question Card
         div(class = "card",
-            h2("What's important to you in a neighborhood?"),
-            p("For each feature below, please rate how important it is to you."),
+            h2(current_question_text),
             br(),
-            uiOutput("importance_ui"),
-            actionButton("see_results", "See Results", class = "btn-custom")
+            radioButtons(
+              inputId = feature_input_id,
+              label = NULL,
+              choices = c("No", "Yes", "Very Much"),
+              inline = TRUE
+            ),
+            br(),
+            # Action Buttons
+            div(
+              actionButton("back_button", "Back", class = "btn-custom"),
+              actionButton("next_button_feature", "Next", class = "btn-custom", style = "margin-left: 10px;")
+            )
+        ),
+        # Question Info Card
+        div(class = "question_info",
+            img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
+                class = "img-fluid",
+                height = "10vh",
+                alt = "Question Info Image"),
+            h4("Why we ask this question:"),
+            p(current_info_text)
         )
       )
-    } else if (current_question() == 4) {
+    } else if (current_q == total_steps + 1) {
       # Results Page UI
-      fluidPage(
-        renderProgressBar(4),
+      tagList(
+        # Progress Bar
+        renderProgressBar(progress_percent),
+        # Results Card
         div(class = "card",
             h2("Recommended Neighborhoods"),
             p("Based on your preferences, here are some neighborhoods you might like:"),
@@ -296,7 +397,7 @@ server <- function(input, output, session) {
     if (input$exclude_areas == "Yes") {
       current_question(2)  # Proceed to Question 2
     } else if (input$exclude_areas == "No") {
-      current_question(3)  # Skip to Question 3
+      current_question(3)  # Skip to the first feature question
     } else {
       showModal(modalDialog(
         title = "Selection Required",
@@ -312,26 +413,44 @@ server <- function(input, output, session) {
     current_question(3)
   })
   
-  # Navigation logic after Question 3
-  observeEvent(input$see_results, {
-    # Before proceeding, check if all preferences are selected
-    preferences <- sapply(features, function(feature) {
-      input[[paste0("importance_", gsub(" ", "_", feature))]]
-    }, simplify = FALSE)
+  # Navigation logic for Feature Importance Questions
+  observeEvent(input$next_button_feature, {
+    current_q <- current_question()
+    feature_index <- current_q - 2
+    feature_keys <- names(features)
+    current_feature_key <- feature_keys[feature_index]
+    feature_input_id <- paste0("importance_", gsub(" ", "_", current_feature_key))
     
-    # Check for missing selections
-    missing_selections <- sapply(preferences, is.null)
-    if (any(missing_selections)) {
+    # Check if the user has selected an option
+    if (is.null(input[[feature_input_id]])) {
       showModal(modalDialog(
-        title = "Incomplete Selection",
-        "Please select an importance level for each feature before proceeding.",
+        title = "Selection Required",
+        "Please select an option before proceeding.",
         easyClose = TRUE,
         footer = NULL
       ))
     } else {
-      # Preferences are complete; proceed to results
-      print(preferences)  # Replace with actual processing logic
-      current_question(4)
+      if (current_q < total_steps) {
+        # Proceed to next feature question
+        current_question(current_q + 1)
+      } else {
+        # All features have been asked; proceed to results
+        current_question(total_steps + 1)
+      }
+    }
+  })
+  
+  # Back Button Logic
+  observeEvent(input$back_button, {
+    current_q <- current_question()
+    
+    if (current_q > 1) {
+      # Decrement current_question to go back
+      current_question(current_q - 1)
+    } else if (current_q == 1) {
+      # If on the first question, go back to the welcome panel
+      hide("main_content")
+      show("welcome_panel")
     }
   })
   
@@ -404,7 +523,7 @@ server <- function(input, output, session) {
       ) %>%
       addPolygons(
         layerId = ~neighborhood,
-        fillColor = ~ifelse(neighborhood %in% excluded_neighborhoods(), "salmon", "darkcyan"),
+        fillColor = ~ifelse(neighborhood %in% c(excluded_neighborhoods(), selected_neighborhoods), "salmon", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
@@ -526,23 +645,6 @@ server <- function(input, output, session) {
     removeModal()
   })
   
-  # Render the importance selection UI
-  output$importance_ui <- renderUI({
-    lapply(features, function(feature) {
-      tagList(
-        h4(feature),
-        radioButtons(
-          inputId = paste0("importance_", gsub(" ", "_", feature)),
-          label = NULL,
-          choices = c("Most Important", "Important", "Not Important"),
-          inline = TRUE
-        ),
-        hr()
-      )
-    })
-  })
-  
-  
   # Handle removal of individual excluded neighborhoods
   observe({
     lapply(excluded_neighborhoods(), function(nbh) {
@@ -558,7 +660,15 @@ server <- function(input, output, session) {
   
   # Render the results map on the results page
   output$results_map <- renderLeaflet({
-    req(current_question() == 4)
+    req(current_question() == total_steps + 1)
+    
+    # Collect user preferences
+    preferences <- sapply(names(features), function(feature_key) {
+      input[[paste0("importance_", gsub(" ", "_", feature_key))]]
+    }, simplify = FALSE)
+    
+    # For debugging purposes
+    print(preferences)
     
     # Get all excluded neighborhoods
     excluded_neighborhoods_current <- excluded_neighborhoods()
@@ -599,8 +709,19 @@ server <- function(input, output, session) {
   
   # Generate and render the list of recommended neighborhoods
   output$recommended_neighborhoods <- renderUI({
-    req(current_question() == 4)
+    req(current_question() == total_steps + 1)
     
+    # Collect user preferences
+    preferences <- sapply(names(features), function(feature_key) {
+      input[[paste0("importance_", gsub(" ", "_", feature_key))]]
+    }, simplify = FALSE)
+    
+    # For debugging purposes
+    print(preferences)
+    
+    # Here you would implement the logic to generate recommendations based on preferences
+    
+    # For demonstration, we'll proceed with existing data
     # Get all excluded neighborhoods
     excluded_neighborhoods_current <- excluded_neighborhoods()
     

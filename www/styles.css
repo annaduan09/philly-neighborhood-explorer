@@ -16,6 +16,7 @@ h1, h2, h3 {
   font-weight: 600;
 }
 
+
 /* Style the action buttons */
 .btn-custom {
   background-color: #3498DB;
@@ -28,8 +29,14 @@ h1, h2, h3 {
   transition: background-color 0.3s ease;
 }
 .btn-custom:hover {
-  background-color: #2980B9;
+  background-color: darkcyan;
 }
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
 
 /* Style the selection buttons */
 .btn-selection {
@@ -102,11 +109,21 @@ h1, h2, h3 {
   color: darkgray;
   margin-top: 10px;
   background-color: #FFFFFF;
-  opacity: 0.5;
-  padding: 30px;
+  opacity: 0.95;
+  padding: 20px;
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Adjust image responsiveness within question_info */
+.question_info img {
+  max-width: 150px;
+  height: auto;
+  border-radius: 10px;
 }
 
 /* Indent neighborhoods */
