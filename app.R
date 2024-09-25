@@ -279,9 +279,8 @@ server <- function(input, output, session) {
                 class = "img-fluid",
                 height = "200px",
                 alt = "Question Info Image"),
-            h4("Why we ask this question:"),
+            h4("Why we ask:"),
             p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you."),
-            p("We'll use this information to exclude these areas from our recommendations."),
             p("If you're not sure, or would like to consider all neighborhoods, you can skip this question.")
         )
       )
@@ -325,7 +324,7 @@ server <- function(input, output, session) {
                 class = "img-fluid",
                 height = "200px",
                 alt = "Question Info Image"),
-            h4("Why we ask this question:"),
+            h4("Why we ask:"),
             p("Selecting areas to exclude ensures that the recommended neighborhoods align with your preferences and requirements."),
             p("This helps in providing more tailored and relevant suggestions.")
         )
@@ -367,8 +366,8 @@ server <- function(input, output, session) {
                 class = "img-fluid",
                 height = "200px",
                 alt = paste0(current_feature_display, " Image")),
-            h4("Why we ask this question:"),
-            p(current_info_text)
+            h4("Why we ask:"),
+            h4(current_info_text)
         )
       )
     } else if (current_q == total_steps + 1) {
@@ -741,13 +740,13 @@ server <- function(input, output, session) {
         popup = ~paste0("<strong>", neighborhood, "</strong><br/>Score: ", round(score, 2)),
         highlight = highlightOptions(
           weight = 2,
-          color = "#666",
+          color = "white",
           fillOpacity = 0.9,
           bringToFront = TRUE
         )
       ) %>%
       addLegend("bottomright", pal = pal, values = ~score,
-                title = "Neighborhood Score",
+                title = "Neighborhood Match",
                 opacity = 1)
   })
   
