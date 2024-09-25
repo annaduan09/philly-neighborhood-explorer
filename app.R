@@ -329,16 +329,19 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         # Question Card
         div(class = "card",
-            h2(current_question_text),
-            br(),
-            p(current_info_text, class = "question-info-text"),
-            br(),
-            img(
-              src = image_src,
-              class = "img-fluid",
-              style = "width: 5%; height: auto;",  # Set width to 50%
-              alt = paste0(current_feature_display, " Image")
+            # Image and question text inline
+            div(
+              style = "display: flex; align-items: center;",
+              img(
+                src = image_src,
+                class = "img-fluid",
+                style = "width: 40px; height: auto; margin-right: 10px;",
+                alt = paste0(current_feature_display, " Image")
+              ),
+              h2(current_question_text)
             ),
+            br(),
+            p(current_info_text),
             br(),
             radioButtons(
               inputId = feature_input_id,
