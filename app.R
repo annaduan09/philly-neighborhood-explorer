@@ -265,6 +265,8 @@ server <- function(input, output, session) {
         div(class = "card",
             h2("Are there any areas you wouldn't want to live in?"),
             br(),
+            p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you."),
+            br(),
             radioButtons("exclude_areas", label = NULL, choices = c("Yes", "No"), inline = TRUE),
             br(),
             # Action Buttons
@@ -272,16 +274,6 @@ server <- function(input, output, session) {
               actionButton("back_button", "Back", class = "btn-custom"),
               actionButton("next_button_q1", "Next", class = "btn-custom", style = "margin-left: 10px;")
             )
-        ),
-        # Question Info Card
-        div(class = "question_info",
-            img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
-                class = "img-fluid",
-                height = "200px",
-                alt = "Question Info Image"),
-            h4("Why we ask:"),
-            p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you."),
-            p("If you're not sure, or would like to consider all neighborhoods, you can skip this question.")
         )
       )
     } else if (current_q == 2) {
@@ -292,6 +284,8 @@ server <- function(input, output, session) {
         # Question Card
         div(class = "card",
             h2("Select Areas to Exclude"),
+            br(),
+            p("Selecting areas to exclude ensures that the recommended neighborhoods align with your preferences and requirements."),
             br(),
             fluidRow(
               column(6,
@@ -317,16 +311,6 @@ server <- function(input, output, session) {
               actionButton("back_button", "Back", class = "btn-custom"),
               actionButton("next_button_q2", "Next", class = "btn-custom", style = "margin-left: 10px;")
             )
-        ),
-        # Question Info Card
-        div(class = "question_info",
-            img(src = "info.png",  # Ensure 'info.png' is inside 'www' directory
-                class = "img-fluid",
-                height = "200px",
-                alt = "Question Info Image"),
-            h4("Why we ask:"),
-            p("Selecting areas to exclude ensures that the recommended neighborhoods align with your preferences and requirements."),
-            p("This helps in providing more tailored and relevant suggestions.")
         )
       )
     } else if (current_q >= 3 && current_q <= 2 + length(features)) {
@@ -347,6 +331,15 @@ server <- function(input, output, session) {
         div(class = "card",
             h2(current_question_text),
             br(),
+            p(current_info_text, class = "question-info-text"),
+            br(),
+            img(
+              src = image_src,
+              class = "img-fluid",
+              style = "width: 5%; height: auto;",  # Set width to 50%
+              alt = paste0(current_feature_display, " Image")
+            ),
+            br(),
             radioButtons(
               inputId = feature_input_id,
               label = NULL,
@@ -359,15 +352,6 @@ server <- function(input, output, session) {
               actionButton("back_button", "Back", class = "btn-custom"),
               actionButton("next_button_feature", "Next", class = "btn-custom", style = "margin-left: 10px;")
             )
-        ),
-        # Question Info Card
-        div(class = "question_info",
-            img(src = image_src,  # Use feature-specific image
-                class = "img-fluid",
-                height = "200px",
-                alt = paste0(current_feature_display, " Image")),
-            h4("Why we ask:"),
-            h4(current_info_text)
         )
       )
     } else if (current_q == total_steps + 1) {
@@ -463,6 +447,8 @@ server <- function(input, output, session) {
     # Reset selections
     excluded_neighborhoods(c())
   })
+  
+  # [Rest of the server code remains the same, including the neighborhood exclusion map functionality]
   
   # Selection Method Buttons on Exclusion Page
   observeEvent(input$select_map, {
