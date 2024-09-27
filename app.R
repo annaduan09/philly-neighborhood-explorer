@@ -88,27 +88,51 @@ neigh_bounds$neighborhood <- as.character(neigh_bounds$MAPNAME)
 neigh_bounds <- st_transform(neigh_bounds, crs = 4326)
 
 # Neighborhood lists by region
-north_neighborhoods <- c("Richmond", "Frankford", "Juniata Park", "Northwood",
-                         "Harrowgate", "Hunting Park", "Nicetown", "Tioga",
-                         "Feltonville", "Logan")
+north_neighborhoods <- c("Juniata Park", "Northwood", "Upper Kensington", 
+                         "Hunting Park", "Nicetown", "Tioga", "Ludlow", "Fairhill",
+                         "Feltonville", "Logan", "Spring Garden", "Fairmount",
+                         "North Central", "Franklinville", "West Kensington", "Hartranft",
+                         "Brewerytown", "Northern Liberties", "Strawberry Mansion",
+                         "Allegheny West", "Olney", "Stanton", "Glenwood", "McGuire", "Yorktown",
+                         "Melrose Park Gardens", "Ogontz", "Fern Rock", "East Poplar",
+                         "Francisville", "Sharswood", "Old Kensington", "West Poplar")
 
 northwest_neighborhoods <- c("West Oak Lane", "East Oak Lane", "Chestnut Hill",
                              "East Germantown", "Southwest Germantown", "Roxborough",
-                             "Manayunk", "West Mount Airy", "East Mount Airy")
+                             "Manayunk", "West Mount Airy", "East Mount Airy", "Andorra",
+                             "Cedarbrook", "East Falls", "Wissahickon", "Germany Hill",
+                             "East Park", "Dearnley Park", "Upper Roxborough", "West Central Germantown",
+                             "Germantown - Westside", "Germantown - Penn Knox", "Wister",
+                             "Germantown - Morton", "Wissahickon Park"
+                             )
 
 northeast_neighborhoods <- c("Mayfair", "Tacony", "Holmesburg", "Fox Chase",
-                             "Bustleton", "Somerton", "Oxford Circle", "Rhawnhurst")
+                             "Bustleton", "Somerton", "Oxford Circle", "Rhawnhurst",
+                             "Bridesburg", "Fishtown - Lower Kensington",
+                             "East Kensington", "Crescentville", "Riverfront", "Lawndale", "Modena",
+                             "Millbrook", "Wissinoming", "Franklin Mills", "Parkwood Manor", "Byberry",
+                             "Burholme", "Lexington Park", "Pennypack", "Academy Gardens", "Morrell Park",
+                             "Pennypack Woods", "Aston-Woodbridge", "Torresdale", "Northeast Phila Airport",
+                             "Normandy Village", "Harrowgate", "Richmond", "Frankford")
 
-west_neighborhoods <- c("University City", "Wynnefield", "Overbrook",
-                        "Cobbs Creek", "Walnut Hill", "Spruce Hill")
+west_neighborhoods <- c("University City", "Wynnefield", "Overbrook", "Carroll Park", 
+                        "Cobbs Creek", "Walnut Hill", "Spruce Hill", "Southwest Schuylkill",
+                        "Wynnefield Heights", "East Parkside", "West Parkside", "Belmont", "Mantua",
+                        "Haverford North", "Woodland Terrace", "Cedar Park", "Powelton", "West Powelton",
+                        "Dunlap", "Haddington", "Mill Creek", "Garden Court")
 
-center_city_neighborhoods <- c("Rittenhouse", "Logan Square", "Chinatown",
-                               "Society Hill", "Washington Square West")
+center_city_neighborhoods <- c("Rittenhouse", "Logan Square", "Chinatown", "Callowhill",
+                               "Society Hill", "Washington Square West", "Old City", "Graduate Hospital",
+                               "Center City East", "Fitler Square")
 
 south_neighborhoods <- c("Point Breeze", "Girard Estates", "Passyunk Square",
-                         "Whitman", "Lower Moyamensing")
+                         "Whitman", "Lower Moyamensing", "Packer Park", "Stadium District",
+                         "Airport", "Navy Yard", "Bartram Village", "Industrial", "Dickinson Narrows",
+                         "Pennsport", "Newbold", "East Passyunk", "Queen Village", "Hawthorne",
+                         "Bella Vista", "West Passyunk", "Greenwich")
 
-southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick")
+southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick", "Penrose", "Paschall", "Grays Ferry",
+                             "Clearview")
 
 # List of all neighborhoods and regions
 region_list <- list(
@@ -129,10 +153,8 @@ features <- c(
   "shopping" = "Shopping",
   "parks" = "Parks",
   "healthcare" = "Healthcare",
-  "kids" = "Families with kids",
   "same_house_pct2022" = "Longtime residents",
   "vouchers" = "Voucher users",
-  "population2022" = "Population",
   "shootings_100k" = "Safety"
 )
 
@@ -158,10 +180,6 @@ question_info_list <- list(
     question = "Do you want to live close to hospitals or clinics?",
     info = "Living near doctors or clinics makes it easier to see a doctor when you need to, especially if you need regular medical care."
   ),
-  "kids" = list(
-    question = "Do you want to live in a neighborhood with other families who have children?",
-    info = "If you have kids, living near other families means your children can make friends nearby. It can also make the neighborhood feel safer."
-  ),
   "same_house_pct2022" = list(
     question = "Is it important for you to live where people have lived for a long time?",
     info = "Neighborhoods with longtime residents often have a strong sense of community where neighbors know each other well."
@@ -169,10 +187,6 @@ question_info_list <- list(
   "vouchers" = list(
     question = "Do you want to live in a place where other people use housing vouchers?",
     info = "In neighborhoods with more voucher holders, it might be easier to find landlords who accept vouchers."
-  ),
-  "population2022" = list(
-    question = "Do you prefer busy neighborhoods or quieter ones?",
-    info = "Busy areas have more people and activities. Quieter areas have fewer people and might be more peaceful."
   ),
   "shootings_100k" = list(
     question = "Is living in a safe neighborhood important to you?",
@@ -364,14 +378,14 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         # Results Card
         div(class = "card",
-            h2("Recommended Neighborhoods"),
+            h2("Your Neighborhood Matches"),
             p("Based on your preferences, here are some neighborhoods you might like:"),
             br(),
             # Leaflet map output
             leafletOutput("results_map", height = "700px"),
             br(),
             # List of recommended neighborhoods
-            h4("Recommended Neighborhoods:"),
+            h4("Neighborhoods:"),
             uiOutput("recommended_neighborhoods"),
             br(),
             actionButton("start_over", "Start Over", class = "btn-custom")
