@@ -78,7 +78,7 @@ nb$neighborhood <- as.character(nb$neighborhood)
 nb <- st_transform(nb, crs = 4326)
 
 # Load the neighborhood boundaries
-neigh_bounds <- st_read("data/neighborhood/phl_neighs_2024.geojson")  # New dataset with single geometry per neighborhood
+neigh_bounds <- st_read("phl_neighs_2024.geojson")  # New dataset with single geometry per neighborhood
 
 # Assign 'neighborhood' column using 'MAPNAME'
 neigh_bounds$neighborhood <- as.character(neigh_bounds$MAPNAME)
@@ -198,14 +198,14 @@ server <- function(input, output, session) {
   observeEvent(input$start_button, {
     hide("welcome_panel")
     show("main_content")
-    current_question(1)  # Reset to first question
+    current_question(1)  # Start with the first prep page
   })
   
   # Reactive value to keep track of the current question
   current_question <- reactiveVal(1)
   
-  # Total number of steps (questions)
-  total_steps <- length(features) + 3  # Feature questions + Exclusion questions + Results
+  # Total number of steps (questions + prep pages + results)
+  total_steps <- length(features) + 4  # +2 prep pages, +1 exclusion selection, +1 results
   
   # Reactive value to store all excluded neighborhoods
   excluded_neighborhoods <- reactiveVal(c())
@@ -258,19 +258,33 @@ server <- function(input, output, session) {
     }
   }
   
-  # Render UI for the questions
+  # Render UI for the questions and prep pages
   output$question_ui <- renderUI({
     current_q <- current_question()
-    
-    # Total number of steps (including features, exclusion questions, and results)
-    total_steps <- length(features) + 3  # Feature questions + Exclusion questions + Results
     
     # Calculate progress percentage
     progress_percent <- ((current_q - 1) / (total_steps)) * 100
     
-    if (current_q <= length(features)) {
+    if (current_q == 1) {
+      # Preparation Page 1
+      tagList(
+        # Progress Bar
+        renderProgressBar(progress_percent),
+        # Preparation Card
+        div(class = "card",
+            h2("Getting Started"),
+            br(),
+            p("The next few screens are going to ask you to rate whether certain neighborhood features are important to you on a scale of: No, Yes, and Very Much."),
+            br(),
+            # Action Buttons
+            div(
+              actionButton("next_button_prep1", "Next", class = "btn-custom", style = "margin-left: 10px;")
+            )
+        )
+      )
+    } else if (current_q >=2 && current_q <= (1 + length(features))) {
       # Feature Importance Questions
-      feature_index <- current_q
+      feature_index <- current_q -1
       feature_keys <- names(features)
       current_feature_key <- feature_keys[feature_index]
       current_feature_display <- features[[current_feature_key]]
@@ -312,27 +326,25 @@ server <- function(input, output, session) {
             )
         )
       )
-    } else if (current_q == length(features) + 1) {
-      # Exclusion Question UI (Are there any areas you wouldn't want to live in?)
+    } else if (current_q == (2 + length(features))) {
+      # Preparation Page 2
       tagList(
         # Progress Bar
         renderProgressBar(progress_percent),
-        # Exclusion Question Card
+        # Preparation Card
         div(class = "card",
-            h2("Are there any areas you wouldn't want to live in?"),
+            h2("Preparing for Neighborhood Selection"),
             br(),
-            p("Knowing which areas you'd like to avoid can help us recommend neighborhoods that are a better fit for you."),
-            br(),
-            radioButtons("exclude_areas", label = NULL, choices = c("Yes", "No"), inline = TRUE),
+            p("The next screen is going to ask you to select areas or neighborhoods of Philadelphia where you prefer to search for housing. There will be two options. Either you can select neighborhoods by name, or you can use your mouse to circle areas on the map that you would prefer."),
             br(),
             # Action Buttons
             div(
-              actionButton("back_button_excl_q", "Back", class = "btn-custom"),
-              actionButton("next_button_q1", "Next", class = "btn-custom", style = "margin-left: 10px;")
+              actionButton("back_button_prep2", "Back", class = "btn-custom"),
+              actionButton("next_button_prep2", "Next", class = "btn-custom", style = "margin-left: 10px;")
             )
         )
       )
-    } else if (current_q == length(features) + 2) {
+    } else if (current_q == (3 + length(features))) {
       # Exclusion Selection UI (Select Areas to Exclude)
       tagList(
         # Progress Bar
@@ -369,7 +381,7 @@ server <- function(input, output, session) {
             )
         )
       )
-    } else if (current_q == total_steps) {
+    } else if (current_q == (4 + length(features))) {
       # Results Page UI
       tagList(
         # Progress Bar
@@ -392,10 +404,27 @@ server <- function(input, output, session) {
     }
   })
   
+  #### Navigation Logic ####
+  
+  # Navigation logic for Preparation Page 1
+  observeEvent(input$next_button_prep1, {
+    current_question(2)  # Move to first feature question
+  })
+  
+  # Navigation logic for Preparation Page 2
+  observeEvent(input$next_button_prep2, {
+    current_question(3 + length(features))  # Move to Exclusion Selection
+  })
+  
+  # Back Button Logic for Preparation Page 2
+  observeEvent(input$back_button_prep2, {
+    current_question(2)  # Return to last feature question
+  })
+  
   # Navigation logic for Feature Importance Questions
   observeEvent(input$next_button_feature, {
     current_q <- current_question()
-    feature_index <- current_q
+    feature_index <- current_q -1
     feature_keys <- names(features)
     current_feature_key <- feature_keys[feature_index]
     
@@ -408,12 +437,12 @@ server <- function(input, output, session) {
         footer = NULL
       ))
     } else {
-      if (current_q < length(features)) {
+      if (current_q < (1 + length(features))) {
         # Proceed to next feature question
         current_question(current_q + 1)
       } else {
-        # Proceed to Exclusion Question
-        current_question(current_q + 1)
+        # All feature questions answered, proceed to Preparation Page 2
+        current_question(current_q +1)
       }
     }
   })
@@ -436,36 +465,27 @@ server <- function(input, output, session) {
   
   # Navigation logic after Exclusion Selection
   observeEvent(input$next_button_q2, {
-    current_question(length(features) + 3)  # Proceed to Results
+    current_question(4 + length(features))  # Proceed to Results
   })
   
   # Back Button Logic for Feature Questions
   observeEvent(input$back_button, {
     current_q <- current_question()
     
-    if (current_q > 1) {
-      # Decrement current_question to go back
+    if (current_q > 2) {
+      # Decrement current_question to go back to previous feature question
       current_question(current_q - 1)
-    } else if (current_q == 1) {
-      # If on the first question, go back to the welcome panel
-      hide("main_content")
-      show("welcome_panel")
-    }
-  })
-  
-  # Back Button Logic for Exclusion Question
-  observeEvent(input$back_button_excl_q, {
-    current_q <- current_question()
-    if (current_q > 1) {
-      current_question(current_q - 1)
+    } else if (current_q == 2) {
+      # If on the first feature question, go back to Preparation Page 1
+      current_question(1)
     }
   })
   
   # Back Button Logic for Exclusion Selection
   observeEvent(input$back_button_excl_sel, {
     current_q <- current_question()
-    if (current_q > 1) {
-      current_question(current_q - 1)
+    if (current_q > 3 + length(features)) {
+      current_question(current_q -1)
     }
   })
   
@@ -477,6 +497,8 @@ server <- function(input, output, session) {
     # Reset selections
     excluded_neighborhoods(c())
   })
+  
+  #### Exclusion Selection Functionality ####
   
   # Selection Method Buttons on Exclusion Page
   observeEvent(input$select_map, {
@@ -673,9 +695,11 @@ server <- function(input, output, session) {
     })
   })
   
+  #### Results Page ####
+  
   # Render the results map on the results page
   output$results_map <- renderLeaflet({
-    req(current_question() == total_steps)
+    req(current_question() == (4 + length(features)))
     
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
@@ -730,7 +754,7 @@ server <- function(input, output, session) {
     # Create color palette
     pal <- colorNumeric(palette = "YlGnBu", 
                         domain = recommended_data$score,
-                        reverse = T)
+                        reverse = TRUE)
     
     # Create the map
     leaflet(data = recommended_data,
@@ -768,7 +792,7 @@ server <- function(input, output, session) {
   
   # Generate and render the list of recommended neighborhoods
   output$recommended_neighborhoods <- renderUI({
-    req(current_question() == total_steps)
+    req(current_question() == (4 + length(features)))
     
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
@@ -832,6 +856,14 @@ server <- function(input, output, session) {
     
     # Render the list of recommended neighborhoods
     renderRecommendedList(neighborhood_scores$neighborhood)
+  })
+  
+  #### Additional Navigation Logic ####
+  
+  # Back Button Logic for Preparation Page 1 (optional if you want to allow going back from prep1)
+  observeEvent(input$back_button_prep1, {
+    hide("main_content")
+    show("welcome_panel")
   })
 }
 
