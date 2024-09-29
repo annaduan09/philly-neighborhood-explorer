@@ -484,9 +484,35 @@ server <- function(input, output, session) {
             ),
             br(),
             # Leaflet map output
-            leafletOutput("results_map", height = "600px")
+            leafletOutput("results_map", height = "600px"),
+            p("Your expected monthly payment:", textOutput("monthly_payment"))
         )
       )
+    }
+  })
+  
+  
+  output$monthly_payment <- renderText({
+    income <- annual_income()
+    household_size_val <- household_size()
+    
+    # Check if inputs are available
+    if (is.null(income) || is.null(household_size_val)) {
+      return("N/A")
+    }
+    
+    # Calculate contribution based on the provided logic
+    if (income <= 167) {
+      return("$50")
+    }
+    else if (household_size_val <= 2) {
+      return(paste0("$", round(0.28 * income / 12), " to $", round(0.4 * income / 12)))
+    }
+    else if (household_size_val <= 5) {
+      return(paste0("$", round(0.27 * income / 12), " to $", round(0.4 * income / 12)))
+    }
+    else {
+      return(paste0("$", round(0.26 * income / 12), " to $", round(0.4 * income / 12)))
     }
   })
   
@@ -796,7 +822,6 @@ server <- function(input, output, session) {
   })
   
   #### Results Page ####
-  # Render the results map on the results page
   output$results_map <- renderLeaflet({
     req(current_question() == (6 + length(features)))
     
