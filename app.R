@@ -28,27 +28,36 @@ ui <- fluidPage(
   # Welcome Panel
   div(
     id = "welcome_panel",
-    img(
-      src = "welcome.png",  # Ensure 'welcome.png' is inside 'www' directory
-      class = "img-fluid",  # Bootstrap class for responsive images
-      height = "80vh",
-      width = "auto",
-      alt = "Welcome Image",
-      style = "padding: 0vh; margin: 0vh;"
-    ),
-    h1("You got a voucher, now what?"),
-    br(),
-    h4("Find Philadelphia neighborhoods where you can use your housing choice voucher."),
-    h4("We'll ask you a few questions to understand what you're looking for."),
-    br(),
-    # Center the button
+    # Center the welcome image
     div(
       style = "text-align: center;",
-      actionButton("start_button", "Get Started",
+      img(
+        src = "welcome.png",  # Ensure 'welcome.png' is inside 'www' directory
+        class = "img-fluid",  # Bootstrap class for responsive images
+        height = "80vh",
+        width = "auto",
+        alt = "Welcome Image",
+        style = "padding: 0vh; margin: 0vh;"
+      )
+    ),
+    # Center the welcome texts and button
+    div(
+      style = "text-align: center; margin-top: -60px;",  # Adjust margin as needed
+      h1("Got a Housing Voucher?"),
+      br(),
+      h4("Philadelphia is a big city made up of smaller areas and neighborhoods. 
+         It can be hard to know where to look for a home with a housing voucher. 
+         Answering a few questions might help you narrow down your housing search."),
+      br(),
+      actionButton("start_button", "Let's Go",  # Changed button text to "Let's Go"
                    class = "btn-custom")
     ),
     br(),
-    p("This will take ~2 minutes"),
+    # Center the informational text
+    div(
+      style = "text-align: center;",
+      p("This will take ~2 minutes")
+    ),
     br()
   ),
   
@@ -205,10 +214,10 @@ server <- function(input, output, session) {
   current_question <- reactiveVal(1)
   
   # Total number of steps (questions + prep pages + results)
-  total_steps <- length(features) + 4  # +2 prep pages, +1 exclusion selection, +1 results
+  total_steps <- length(features) + 4  # +2 prep pages, +1 selection, +1 results
   
-  # Reactive value to store all excluded neighborhoods
-  excluded_neighborhoods <- reactiveVal(c())
+  # Reactive value to store all preferred neighborhoods
+  preferred_neighborhoods <- reactiveVal(c())
   
   # Function to render progress bar
   renderProgressBar <- function(percent) {
@@ -223,16 +232,16 @@ server <- function(input, output, session) {
     )
   }
   
-  # Function to render excluded neighborhoods list
-  renderExcludedList <- function() {
-    neighborhoods <- excluded_neighborhoods()
+  # Function to render preferred neighborhoods list
+  renderPreferredList <- function() {
+    neighborhoods <- preferred_neighborhoods()
     if (length(neighborhoods) == 0) {
-      return(p("No neighborhoods excluded yet."))
+      return(p("No neighborhoods selected yet."))
     } else {
       return(
-        div(class = "excluded-list",
+        div(class = "preferred-list",
             lapply(neighborhoods, function(nbh) {
-              div(class = "excluded-item",
+              div(class = "preferred-item",
                   span(nbh),
                   actionButton(paste0("remove_", gsub(" ", "_", nbh)), "Remove", icon = icon("trash"), 
                                style = "padding: 3px 7px; font-size: 12px;")
@@ -246,7 +255,7 @@ server <- function(input, output, session) {
   # Function to render recommended neighborhoods list
   renderRecommendedList <- function(neighborhoods) {
     if (length(neighborhoods) == 0) {
-      return(p("No neighborhoods match your preferences based on the exclusions."))
+      return(p("No neighborhoods match your preferences."))
     } else {
       return(
         div(class = "recommended-list",
@@ -270,15 +279,21 @@ server <- function(input, output, session) {
       tagList(
         # Progress Bar
         renderProgressBar(progress_percent),
-        # Preparation Card
+        # Preparation Card with centered and playful layout
         div(class = "card",
-            h2("Getting Started"),
-            br(),
-            p("The next few screens are going to ask you to rate whether certain neighborhood features are important to you on a scale of: No, Yes, and Very Much."),
-            br(),
-            # Action Buttons
             div(
-              actionButton("next_button_prep1", "Next", class = "btn-custom", style = "margin-left: 10px;")
+              style = "text-align: center;",
+              h2("Welcome to Philly Neighborhood Explorer! 🎉"),
+              br(),
+              p("We're here to help you find the perfect neighborhood in Philadelphia using your housing voucher."),
+              p("Let's get started by understanding what features are important to you.")
+            ),
+            br(),
+            # Center the "Let's Go" button
+            div(
+              style = "text-align: center;",
+              actionButton("next_button_prep1", "Let's Go",  # Changed button text to "Let's Go"
+                           class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
         )
       )
@@ -300,11 +315,11 @@ server <- function(input, output, session) {
         div(class = "card",
             # Image and question text inline
             div(
-              style = "display: flex; align-items: center;",
+              style = "display: flex; align-items: center; justify-content: center;",
               img(
                 src = image_src,
                 class = "img-fluid",
-                style = "width: 40px; height: auto; margin-right: 10px;",
+                style = "width: 50px; height: auto; margin-right: 15px;",
                 alt = paste0(current_feature_display, " Image")
               ),
               h2(current_question_text)
@@ -321,8 +336,9 @@ server <- function(input, output, session) {
             br(),
             # Action Buttons
             div(
-              actionButton("back_button", "Back", class = "btn-custom"),
-              actionButton("next_button_feature", "Next", class = "btn-custom", style = "margin-left: 10px;")
+              style = "text-align: center;",
+              actionButton("back_button", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_button_feature", "Next", class = "btn-custom")
             )
         )
       )
@@ -331,53 +347,65 @@ server <- function(input, output, session) {
       tagList(
         # Progress Bar
         renderProgressBar(progress_percent),
-        # Preparation Card
+        # Preparation Card with centered and playful layout
         div(class = "card",
-            h2("Preparing for Neighborhood Selection"),
-            br(),
-            p("The next screen is going to ask you to select areas or neighborhoods of Philadelphia where you prefer to search for housing. There will be two options. Either you can select neighborhoods by name, or you can use your mouse to circle areas on the map that you would prefer."),
-            br(),
-            # Action Buttons
             div(
-              actionButton("back_button_prep2", "Back", class = "btn-custom"),
-              actionButton("next_button_prep2", "Next", class = "btn-custom", style = "margin-left: 10px;")
+              style = "text-align: center;",
+              h2("Almost There! 🚀"),
+              br(),
+              p("Next, you'll select the neighborhoods you're interested in living. You can choose them by name or interact with the map."),
+              p("This will help us tailor the best recommendations for you.")
+            ),
+            br(),
+            # Center the "Let's Go" button
+            div(
+              style = "text-align: center;",
+              actionButton("next_button_prep2", "Let's Go",  # Changed button text to "Let's Go"
+                           class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
         )
       )
     } else if (current_q == (3 + length(features))) {
-      # Exclusion Selection UI (Select Areas to Exclude)
+      # Neighborhood Selection UI (Select Preferred Areas)
       tagList(
         # Progress Bar
         renderProgressBar(progress_percent),
-        # Exclusion Selection Card
+        # Neighborhood Selection Card
         div(class = "card",
-            h2("Select Areas to Exclude"),
-            br(),
-            p("Selecting areas to exclude ensures that the recommended neighborhoods align with your preferences and requirements."),
+            div(
+              style = "text-align: center;",
+              h2("Select Your Preferred Neighborhoods 🏡"),
+              br(),
+              p("Choose the neighborhoods you'd love to live in. Select via the map or from the list below.")
+            ),
             br(),
             fluidRow(
               column(6,
                      # Selection Method Buttons
                      div(class = "selection-buttons",
-                         actionButton("select_map", "Select via Map", class = "btn-selection"),
-                         actionButton("select_list", "Select via List", class = "btn-selection")
+                         actionButton("select_map", "Select via Map", class = "btn-selection", 
+                                      style = "width: 100%; margin-bottom: 10px; padding: 15px; font-size: 14px;"),
+                         actionButton("select_list", "Select via List", class = "btn-selection", 
+                                      style = "width: 100%; padding: 15px; font-size: 14px;")
                      )
               ),
               column(6,
-                     # Display excluded neighborhoods
-                     h4("Currently Excluded Neighborhoods:"),
-                     renderExcludedList(),
+                     # Display preferred neighborhoods
+                     h4("Currently Selected Neighborhoods:"),
+                     renderPreferredList(),
                      br(),
                      div(
-                       actionButton("clear_all", "Clear All Exclusions", class = "btn-custom")
+                       actionButton("clear_all", "Clear All Selections", class = "btn-custom", 
+                                    style = "padding: 10px 20px; font-size: 14px;")
                      )
               )
             ),
             br(),
             # Action Buttons
             div(
-              actionButton("back_button_excl_sel", "Back", class = "btn-custom"),
-              actionButton("next_button_q2", "Next", class = "btn-custom", style = "margin-left: 10px;")
+              style = "text-align: center;",
+              actionButton("back_button_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_button_q2", "Next", class = "btn-custom")
             )
         )
       )
@@ -388,8 +416,12 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         # Results Card
         div(class = "card",
-            h2("Your Neighborhood Matches"),
-            p("Based on your preferences, here are some neighborhoods you might like:"),
+            div(
+              style = "text-align: center;",
+              h2("Your Neighborhood Matches 🌟"),
+              br(),
+              p("Based on your preferences, here are some neighborhoods you might love:")
+            ),
             br(),
             # Leaflet map output
             leafletOutput("results_map", height = "700px"),
@@ -398,7 +430,11 @@ server <- function(input, output, session) {
             h4("Neighborhoods:"),
             uiOutput("recommended_neighborhoods"),
             br(),
-            actionButton("start_over", "Start Over", class = "btn-custom")
+            div(
+              style = "text-align: center;",
+              actionButton("start_over", "Start Over", class = "btn-custom", 
+                           style = "padding: 10px 20px; font-size: 14px;")
+            )
         )
       )
     }
@@ -413,7 +449,8 @@ server <- function(input, output, session) {
   
   # Navigation logic for Preparation Page 2
   observeEvent(input$next_button_prep2, {
-    current_question(3 + length(features))  # Move to Exclusion Selection
+    # Proceed to Neighborhood Selection
+    current_question(3 + length(features))  # Move to Neighborhood Selection
   })
   
   # Back Button Logic for Preparation Page 2
@@ -447,24 +484,9 @@ server <- function(input, output, session) {
     }
   })
   
-  # Navigation logic after Exclusion Question
-  observeEvent(input$next_button_q1, {
-    if (input$exclude_areas == "Yes") {
-      current_question(length(features) + 2)  # Proceed to Exclusion Selection
-    } else if (input$exclude_areas == "No") {
-      current_question(length(features) + 3)  # Proceed to Results
-    } else {
-      showModal(modalDialog(
-        title = "Selection Required",
-        "Please select 'Yes' or 'No' before proceeding.",
-        easyClose = TRUE,
-        footer = NULL
-      ))
-    }
-  })
-  
-  # Navigation logic after Exclusion Selection
+  # Navigation logic after Neighborhood Selection
   observeEvent(input$next_button_q2, {
+    # If preferred_neighborhoods are selected, proceed to Results
     current_question(4 + length(features))  # Proceed to Results
   })
   
@@ -481,8 +503,8 @@ server <- function(input, output, session) {
     }
   })
   
-  # Back Button Logic for Exclusion Selection
-  observeEvent(input$back_button_excl_sel, {
+  # Back Button Logic for Neighborhood Selection
+  observeEvent(input$back_button_neigh_sel, {
     current_q <- current_question()
     if (current_q > 3 + length(features)) {
       current_question(current_q -1)
@@ -495,15 +517,15 @@ server <- function(input, output, session) {
     show("welcome_panel")
     hide("main_content")
     # Reset selections
-    excluded_neighborhoods(c())
+    preferred_neighborhoods(c())
   })
   
-  #### Exclusion Selection Functionality ####
+  #### Neighborhood Selection Functionality ####
   
-  # Selection Method Buttons on Exclusion Page
+  # Selection Method Buttons on Neighborhood Selection Page
   observeEvent(input$select_map, {
     showModal(modalDialog(
-      title = "Select Areas to Exclude via Map",
+      title = "Select Preferred Areas via Map",
       size = "l",  # Large modal
       easyClose = TRUE,
       footer = tagList(
@@ -517,7 +539,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$select_list, {
     showModal(modalDialog(
-      title = "Select Areas to Exclude via List",
+      title = "Select Preferred Areas via List",
       size = "l",  # Large modal
       easyClose = TRUE,
       footer = tagList(
@@ -526,17 +548,17 @@ server <- function(input, output, session) {
       ),
       # Modal content: selection inputs
       fluidPage(
-        h4("Select regions and neighborhoods to exclude:"),
+        h4("Select regions and neighborhoods to include:"),
         br(),
         uiOutput("region_neighborhood_selection_ui")
       )
     ))
   })
   
-  # Clear All Exclusions
+  # Clear All Selections
   observeEvent(input$clear_all, {
-    excluded_neighborhoods(c())
-    showNotification("All excluded neighborhoods have been cleared.", type = "message")
+    preferred_neighborhoods(c())
+    showNotification("All selected neighborhoods have been cleared.", type = "message")
   })
   
   # Reactive value to store selected neighborhoods from the map
@@ -560,7 +582,7 @@ server <- function(input, output, session) {
       ) %>%
       addPolygons(
         layerId = ~neighborhood,
-        fillColor = ~ifelse(neighborhood %in% c(excluded_neighborhoods(), selected_neighborhoods), "salmon", "darkcyan"),
+        fillColor = ~ifelse(neighborhood %in% c(preferred_neighborhoods(), selected_neighborhoods), "salmon", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
@@ -588,7 +610,7 @@ server <- function(input, output, session) {
       addPolygons(
         data = neigh_bounds,
         layerId = ~neighborhood,
-        fillColor = ~ifelse(neighborhood %in% c(excluded_neighborhoods(), selected_areas()), "salmon", "darkcyan"),
+        fillColor = ~ifelse(neighborhood %in% c(preferred_neighborhoods(), selected_areas()), "salmon", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
@@ -605,7 +627,7 @@ server <- function(input, output, session) {
       addPolygons(
         data = neigh_bounds,
         layerId = ~neighborhood,
-        fillColor = ~ifelse(neighborhood %in% excluded_neighborhoods(), "salmon", "darkcyan"),
+        fillColor = ~ifelse(neighborhood %in% preferred_neighborhoods(), "salmon", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
@@ -616,10 +638,10 @@ server <- function(input, output, session) {
   
   # Save the selected areas when the user clicks "Save Selection" in the map modal
   observeEvent(input$save_map_selection, {
-    # Add the selected areas to the excluded_neighborhoods
-    new_exclusions <- selected_areas()
-    updated_exclusions <- unique(c(excluded_neighborhoods(), new_exclusions))
-    excluded_neighborhoods(updated_exclusions)
+    # Add the selected areas to the preferred_neighborhoods
+    new_preferences <- selected_areas()
+    updated_preferences <- unique(c(preferred_neighborhoods(), new_preferences))
+    preferred_neighborhoods(updated_preferences)
     selected_areas(c())  # Reset the temporary selection
     removeModal()
   })
@@ -637,7 +659,7 @@ server <- function(input, output, session) {
             inputId = neighborhood_input_id,
             label = NULL,
             choices = region_list[[region_name]],
-            selected = intersect(region_list[[region_name]], excluded_neighborhoods())
+            selected = intersect(region_list[[region_name]], preferred_neighborhoods())
           )
         ),
         hr()
@@ -672,25 +694,25 @@ server <- function(input, output, session) {
       input[[neighborhood_input_id]]
     }))
     
-    updated_exclusions <- unique(c(excluded_neighborhoods(), neighborhoods))
-    excluded_neighborhoods(updated_exclusions)
+    updated_preferences <- unique(c(preferred_neighborhoods(), neighborhoods))
+    preferred_neighborhoods(updated_preferences)
     
     # For debugging purposes
-    print("Excluded Neighborhoods from List:")
-    print(excluded_neighborhoods())
+    print("Preferred Neighborhoods from List:")
+    print(preferred_neighborhoods())
     
     removeModal()
   })
   
-  # Handle removal of individual excluded neighborhoods
+  # Handle removal of individual preferred neighborhoods
   observe({
-    lapply(excluded_neighborhoods(), function(nbh) {
+    lapply(preferred_neighborhoods(), function(nbh) {
       # Create unique input IDs by replacing spaces with underscores
       input_id <- paste0("remove_", gsub(" ", "_", nbh))
       # Use isolate to prevent unnecessary reactivity
       observeEvent(input[[input_id]], {
-        updated_exclusions <- setdiff(excluded_neighborhoods(), nbh)
-        excluded_neighborhoods(updated_exclusions)
+        updated_preferences <- setdiff(preferred_neighborhoods(), nbh)
+        preferred_neighborhoods(updated_preferences)
       }, ignoreNULL = TRUE)
     })
   })
@@ -721,11 +743,16 @@ server <- function(input, output, session) {
     print("User Preference Weights:")
     print(preference_weights)
     
-    # Get all excluded neighborhoods
-    excluded_neighborhoods_current <- excluded_neighborhoods()
+    # Get all preferred neighborhoods
+    preferred_neighborhoods_current <- preferred_neighborhoods()
     
-    # Exclude all geometries in 'nb' that have neighborhood names in excluded_neighborhoods
-    recommended_data <- nb[!nb$neighborhood %in% excluded_neighborhoods_current, ]
+    if (length(preferred_neighborhoods_current) > 0) {
+      # If preferred neighborhoods are selected, focus on them
+      recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
+    } else {
+      # Else, use all neighborhoods
+      recommended_data <- nb
+    }
     
     # Ensure all necessary feature columns are present and numeric
     missing_features <- setdiff(names(features), colnames(recommended_data))
@@ -814,11 +841,16 @@ server <- function(input, output, session) {
     print("User Preference Weights:")
     print(preference_weights)
     
-    # Get all excluded neighborhoods
-    excluded_neighborhoods_current <- excluded_neighborhoods()
+    # Get all preferred neighborhoods
+    preferred_neighborhoods_current <- preferred_neighborhoods()
     
-    # Exclude all geometries in 'nb' that have neighborhood names in excluded_neighborhoods
-    recommended_data <- nb[!nb$neighborhood %in% excluded_neighborhoods_current, ]
+    if (length(preferred_neighborhoods_current) > 0) {
+      # If preferred neighborhoods are selected, focus on them
+      recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
+    } else {
+      # Else, use all neighborhoods
+      recommended_data <- nb
+    }
     
     # Ensure all necessary feature columns are present and numeric
     missing_features <- setdiff(names(features), colnames(recommended_data))
