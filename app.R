@@ -209,10 +209,13 @@ server <- function(input, output, session) {
   current_question <- reactiveVal(1)
   
   # Total number of steps (questions + prep pages + results)
-  total_steps <- length(features) + 4  # +2 prep pages, +1 selection, +1 results
+  total_steps <- length(features) + 6  # +2 prep pages, +1 selection, +1 results
   
   # Reactive value to store all preferred neighborhoods
   preferred_neighborhoods <- reactiveVal(c())
+  
+  household_size <- reactiveVal(NULL)
+  annual_income <- reactiveVal(NULL)
   
   # Function to render progress bar
   renderProgressBar <- function(percent) {
@@ -262,6 +265,7 @@ server <- function(input, output, session) {
     }
   }
   
+  # Render UI for the questions and prep pages
   # Render UI for the questions and prep pages
   output$question_ui <- renderUI({
     current_q <- current_question()
@@ -404,6 +408,70 @@ server <- function(input, output, session) {
         )
       )
     } else if (current_q == (4 + length(features))) {
+      # First New Question: How many people will be living in this unit?
+      tagList(
+        # Progress Bar
+        renderProgressBar(progress_percent),
+        # New Question 1 Card
+        div(class = "card",
+            div(
+              style = "text-align: center;",
+              h2("Household Size"),
+              br(),
+              p("How many people will be living in this unit?"),
+              p("This helps determine how much rent your voucher will cover.")
+            ),
+            br(),
+            numericInput(
+              inputId = "household_size",
+              label = NULL,
+              value = 1,
+              min = 1,
+              max = 9,
+              step = 1
+            ),
+            br(),
+            # Action Buttons
+            div(
+              style = "text-align: center;",
+              actionButton("back_button_q1", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_button_q1", "Next", class = "btn-custom")
+            )
+        )
+      )
+    } else if (current_q == (5 + length(features))) {
+      # Second New Question: What is your estimated annual income?
+      tagList(
+        # Progress Bar
+        renderProgressBar(progress_percent),
+        # New Question 2 Card
+        div(class = "card",
+            div(
+              style = "text-align: center;",
+              h2("Estimated Annual Income"),
+              br(),
+              p("What is your estimated annual income?"),
+              p("This helps us calculate your expected monthly contribution to your voucher unit.")
+            ),
+            br(),
+            numericInput(
+              inputId = "annual_income",
+              label = NULL,
+              value = 30000,
+              min = 0,
+              max = 150000,
+              step = 5000
+            ),
+            br(),
+            # Action Buttons
+            div(
+              style = "text-align: center;",
+              actionButton("back_button_q2_new", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_button_q2_new", "Next", class = "btn-custom")
+            )
+        )
+      )
+    } else if (current_q == (6 + length(features))) {
       # Results Page UI
       tagList(
         # Progress Bar
@@ -424,6 +492,8 @@ server <- function(input, output, session) {
     }
   })
   
+  
+  #### Navigation Logic ####
   #### Navigation Logic ####
   
   # Navigation logic for Preparation Page 1
@@ -470,8 +540,8 @@ server <- function(input, output, session) {
   
   # Navigation logic after Neighborhood Selection
   observeEvent(input$next_button_q2, {
-    # If preferred_neighborhoods are selected, proceed to Results
-    current_question(4 + length(features))  # Proceed to Results
+    # If preferred_neighborhoods are selected, proceed to First New Question
+    current_question(6 + length(features))  # Proceed to First New Question
   })
   
   # Back Button Logic for Feature Questions
@@ -495,6 +565,52 @@ server <- function(input, output, session) {
     }
   })
   
+  # Navigation logic for First New Question (People Living)
+  observeEvent(input$next_button_q1, {
+    # Validate input
+    if (is.null(input$household_size) || input$household_size < 1) {
+      showModal(modalDialog(
+        title = "Input Required",
+        "Please enter a valid number of people living in the unit.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } else {
+      # Store the input
+      household_size(input$household_size)
+      # Proceed to Second New Question
+      current_question(5 + length(features))
+    }
+  })
+  
+  # Back Button Logic for First New Question
+  observeEvent(input$back_button_q1, {
+    current_question(3 + length(features))  # Return to Neighborhood Selection
+  })
+  
+  # Navigation logic for Second New Question (Annual Income)
+  observeEvent(input$next_button_q2_new, {
+    # Validate input
+    if (is.null(input$annual_income) || input$annual_income < 0) {
+      showModal(modalDialog(
+        title = "Input Required",
+        "Please enter a valid estimated annual income.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } else {
+      # Store the input
+      annual_income(input$annual_income)
+      # Proceed to Results Page
+      current_question(6 + length(features))
+    }
+  })
+  
+  # Back Button Logic for Second New Question
+  observeEvent(input$back_button_q2_new, {
+    current_question(4 + length(features))  # Return to First New Question
+  })
+  
   # Restart
   observeEvent(input$start_over, {
     current_question(1)
@@ -502,7 +618,11 @@ server <- function(input, output, session) {
     hide("main_content")
     # Reset selections
     preferred_neighborhoods(c())
+    # Reset new inputs
+    household_size(NULL)
+    annual_income(NULL)
   })
+  
   
   #### Neighborhood Selection Functionality ####
   
@@ -704,7 +824,7 @@ server <- function(input, output, session) {
   #### Results Page ####
   # Render the results map on the results page
   output$results_map <- renderLeaflet({
-    req(current_question() == (4 + length(features)))
+    req(current_question() == (6 + length(features)))
     
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
@@ -766,8 +886,9 @@ server <- function(input, output, session) {
     
     # Select top 5 neighborhoods (adjust as needed)
     top_neighborhoods <- head(recommended_data, 5)
+    print(head(top_neighborhoods))
     
-    # Compute centroids for each neighborhood to place markers
+    # Compute centroids for each neighborhood to place markers or labels
     top_neighborhoods_centroids <- st_centroid(top_neighborhoods)
     
     # Extract longitude and latitude from centroids
@@ -776,9 +897,9 @@ server <- function(input, output, session) {
     # Add longitude and latitude to the data frame
     top_neighborhoods$lon <- top_neighborhoods_coords[, 1]
     top_neighborhoods$lat <- top_neighborhoods_coords[, 2]
-
-    # Create the map
-    leaflet(data = top_neighborhoods, options = leafletOptions(minZoom = 10)) %>%
+    
+    # Initialize the Leaflet map
+    map <- leaflet(data = nb, options = leafletOptions(minZoom = 10)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406, lat = 40.00761, zoom = 11) %>%
       setMaxBounds(
@@ -787,18 +908,22 @@ server <- function(input, output, session) {
         lng2 = -74.95576,
         lat2 = 40.13799
       ) %>%
-      addPolygons(data = nb, 
-                  fillColor = "black",
-                  color = "transparent",
-                  weight = 0.1,
-                  fillOpacity = 0.1,
-                  highlight = highlightOptions(
-                    weight = 2,
-                    color = "white",
-                    fillOpacity = 0.2,
-                    bringToFront = TRUE
-                  )) %>%
+      # Add background polygons (all neighborhoods with low opacity)
       addPolygons(
+        fillColor = "black",
+        color = "transparent",
+        weight = 0.1,
+        fillOpacity = 0.1,
+        highlight = highlightOptions(
+          weight = 2,
+          color = "white",
+          fillOpacity = 0.2,
+          bringToFront = TRUE
+        )
+      ) %>%
+      # Add polygons for top neighborhoods with higher opacity and color
+      addPolygons(
+        data = top_neighborhoods,
         fillColor = "darkcyan",
         color = "white",
         dashArray = "3",
@@ -813,9 +938,105 @@ server <- function(input, output, session) {
           fillOpacity = 0.9,
           bringToFront = TRUE
         )
-      ) 
+      ) %>%
+      # Add permanent labels for each top neighborhood
+      addLabelOnlyMarkers(
+        data = top_neighborhoods,
+        lng = ~lon,
+        lat = ~lat,
+        label = ~neighborhood,
+        labelOptions = labelOptions(
+          noHide = TRUE,
+          direction = "top",
+          textOnly = TRUE,
+          style = list(
+            "color" = "darkslategray",
+            "font-size" = "12px",
+            "background-color" = "rgba(255,255,255,0.7)",
+            "padding" = "2px 4px",
+            "border-radius" = "3px"
+          )
+        )
+      )
+    
+    # Render the map
+    map
   })
   
+  # Render the sidebar card listing the top 5 neighborhoods
+  output$recommended_neighborhoods_card <- renderUI({
+    req(current_question() == (4 + length(features)))
+    
+    # Collect user preferences and map to weights
+    preference_weights <- sapply(names(features), function(feature_key) {
+      response <- input[[paste0("importance_", gsub(" ", "_", feature_key))]]
+      if (response == "No") {
+        return(0)
+      } else if (response == "Yes") {
+        return(1)
+      } else if (response == "Very Much") {
+        return(2)
+      } else {
+        return(0)  # Default to 0 if no response
+      }
+    }, simplify = TRUE)
+    
+    names(preference_weights) <- names(features)
+    
+    # Get all preferred neighborhoods
+    preferred_neighborhoods_current <- preferred_neighborhoods()
+    
+    if (length(preferred_neighborhoods_current) > 0) {
+      # If preferred neighborhoods are selected, focus on them
+      recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
+    } else {
+      # Else, use all neighborhoods
+      recommended_data <- nb
+    }
+    
+    # Ensure all necessary feature columns are present and numeric
+    missing_features <- setdiff(names(features), colnames(recommended_data))
+    if (length(missing_features) > 0) {
+      stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
+    }
+    
+    # Drop geometry to avoid issues with non-numeric data
+    recommended_data_no_geom <- st_drop_geometry(recommended_data)
+    
+    # Extract feature data
+    feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
+    
+    # Convert feature columns to numeric and replace NAs with zeros
+    for (feature in names(features)) {
+      feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
+      feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
+    }
+    
+    # Multiply each feature column by the corresponding weight
+    weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
+    
+    # Compute the weighted sum (rowMeans)
+    recommended_data$score <- rowMeans(weighted_features)
+    
+    # Arrange the data by descending score
+    recommended_data <- arrange(recommended_data, desc(score))
+    
+    # Select top 5 neighborhoods
+    top_neighborhoods <- head(recommended_data, 5)
+    
+    # Render the list as a styled HTML element
+    tags$div(
+      tags$ol(
+        lapply(1:nrow(top_neighborhoods), function(i) {
+          tags$li(
+            tags$strong(top_neighborhoods$tract_neigh[i]),
+            ": Score ",
+            round(top_neighborhoods$score[i], 2)
+          )
+        })
+      )
+    )
+  })
   
   #### Additional Navigation Logic ####
   observeEvent(input$back_button_prep1, {
