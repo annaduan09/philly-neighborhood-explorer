@@ -965,7 +965,7 @@ server <- function(input, output, session) {
   
   # Render the sidebar card listing the top 5 neighborhoods
   output$recommended_neighborhoods_card <- renderUI({
-    req(current_question() == (6 + length(features)))
+    req(current_question() == (4 + length(features)))
     
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
