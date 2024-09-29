@@ -196,6 +196,20 @@ question_info_list <- list(
   )
 )
 
+#### FUNCTIONS #### 
+# Function to render progress bar
+renderProgressBar <- function(percent) {
+  tags$div(class = "progress",
+           tags$div(class = "progress-bar",
+                    role = "progressbar",
+                    style = paste0("width: ", percent, "%;"),
+                    `aria-valuenow` = percent,
+                    `aria-valuemin` = "0",
+                    `aria-valuemax` = "100"
+           )
+  )
+}
+
 #### SERVER ####
 server <- function(input, output, session) {
   # Hide the welcome panel and show the main content when the button is clicked
@@ -209,28 +223,14 @@ server <- function(input, output, session) {
   current_question <- reactiveVal(1)
   
   # Total number of steps (questions + prep pages + results)
-  total_steps <- length(features) + 6  # +2 prep pages, +1 selection, +1 results
+  total_steps <- length(features) + 6
   
   # Reactive value to store all preferred neighborhoods
   preferred_neighborhoods <- reactiveVal(c())
   
   household_size <- reactiveVal(NULL)
   annual_income <- reactiveVal(NULL)
-  
-  # Function to render progress bar
-  renderProgressBar <- function(percent) {
-    tags$div(class = "progress",
-             tags$div(class = "progress-bar",
-                      role = "progressbar",
-                      style = paste0("width: ", percent, "%;"),
-                      `aria-valuenow` = percent,
-                      `aria-valuemin` = "0",
-                      `aria-valuemax` = "100"
-             )
-    )
-  }
-  
-  # Function to render preferred neighborhoods list
+
   renderPreferredList <- function() {
     neighborhoods <- preferred_neighborhoods()
     if (length(neighborhoods) == 0) {
@@ -250,7 +250,6 @@ server <- function(input, output, session) {
     }
   }
   
-  # Function to render recommended neighborhoods list
   renderRecommendedList <- function(neighborhoods) {
     if (length(neighborhoods) == 0) {
       return(p("No neighborhoods match your preferences."))
@@ -265,7 +264,6 @@ server <- function(input, output, session) {
     }
   }
   
-  # Render UI for the questions and prep pages
   # Render UI for the questions and prep pages
   output$question_ui <- renderUI({
     current_q <- current_question()
@@ -290,12 +288,12 @@ server <- function(input, output, session) {
             # Center the "Let's Go" button
             div(
               style = "text-align: center;",
-              actionButton("next_button_prep1", "Let's Go",  
+              actionButton("next_info_1", "Let's Go",  
                            class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
         )
       )
-    } else if (current_q >=2 && current_q <= (1 + length(features))) {
+    } else if (current_q >= 2 && current_q <= (1 + length(features))) {
       # Feature Importance Questions
       feature_index <- current_q -1
       feature_keys <- names(features)
@@ -335,8 +333,8 @@ server <- function(input, output, session) {
             # Action Buttons
             div(
               style = "text-align: center;",
-              actionButton("back_button", "Back", class = "btn-custom", style = "margin-right: 10px;"),
-              actionButton("next_button_feature", "Next", class = "btn-custom")
+              actionButton("back_feature", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_feature", "Next", class = "btn-custom")
             )
         )
       )
@@ -358,7 +356,7 @@ server <- function(input, output, session) {
             # Center the "Let's Go" button
             div(
               style = "text-align: center;",
-              actionButton("next_button_prep2", "Let's Go",  # Changed button text to "Let's Go"
+              actionButton("next_info_2", "Let's Go",  # Changed button text to "Let's Go"
                            class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
         )
@@ -402,8 +400,8 @@ server <- function(input, output, session) {
             # Action Buttons
             div(
               style = "text-align: center;",
-              actionButton("back_button_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
-              actionButton("next_button_q2", "Next", class = "btn-custom")
+              actionButton("back_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_neigh_sel", "Next", class = "btn-custom")
             )
         )
       )
@@ -434,8 +432,8 @@ server <- function(input, output, session) {
             # Action Buttons
             div(
               style = "text-align: center;",
-              actionButton("back_button_q1", "Back", class = "btn-custom", style = "margin-right: 10px;"),
-              actionButton("next_button_q1", "Next", class = "btn-custom")
+              actionButton("back_hhsize", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_hhsize", "Next", class = "btn-custom")
             )
         )
       )
@@ -466,8 +464,8 @@ server <- function(input, output, session) {
             # Action Buttons
             div(
               style = "text-align: center;",
-              actionButton("back_button_q2_new", "Back", class = "btn-custom", style = "margin-right: 10px;"),
-              actionButton("next_button_q2_new", "Next", class = "btn-custom")
+              actionButton("back_income", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_income", "Next", class = "btn-custom")
             )
         )
       )
@@ -492,82 +490,66 @@ server <- function(input, output, session) {
     }
   })
   
-  
-  #### Navigation Logic ####
   #### Navigation Logic ####
   
-  # Navigation logic for Preparation Page 1
-  observeEvent(input$next_button_prep1, {
-    current_question(2)  # Move to first feature question
+  # INFO 1
+  observeEvent(input$next_info_1, {
+    current_question(2) 
   })
   
-  # Navigation logic for Preparation Page 2
-  observeEvent(input$next_button_prep2, {
-    # Proceed to Neighborhood Selection
-    current_question(3 + length(features))  # Move to Neighborhood Selection
+  # INFO 2
+  observeEvent(input$next_info_2, {
+    current_question(3 + length(features))
+  })
+  observeEvent(input$back_info_2, {
+    current_question(3 + length(features))  
   })
   
-  # Back Button Logic for Preparation Page 2
-  observeEvent(input$back_button_prep2, {
-    current_question(2)  # Return to last feature question
-  })
-  
-  # Navigation logic for Feature Importance Questions
-  observeEvent(input$next_button_feature, {
+  # FEATURE QS
+  observeEvent(input$next_feature, {
     current_q <- current_question()
     feature_index <- current_q -1
     feature_keys <- names(features)
     current_feature_key <- feature_keys[feature_index]
-    
-    # Check if the user has selected an option
+
     if (is.null(input[[paste0("importance_", gsub(" ", "_", current_feature_key))]])) {
       showModal(modalDialog(
-        title = "Selection Required",
-        "Please select an option before proceeding.",
+        title = "Please select an answer.",
         easyClose = TRUE,
         footer = NULL
       ))
     } else {
       if (current_q < (1 + length(features))) {
-        # Proceed to next feature question
         current_question(current_q + 1)
       } else {
-        # All feature questions answered, proceed to Preparation Page 2
         current_question(current_q +1)
       }
     }
   })
   
-  # Navigation logic after Neighborhood Selection
-  observeEvent(input$next_button_q2, {
-    # If preferred_neighborhoods are selected, proceed to First New Question
-    current_question(6 + length(features))  # Proceed to First New Question
-  })
-  
-  # Back Button Logic for Feature Questions
-  observeEvent(input$back_button, {
+  observeEvent(input$back_feature, {
     current_q <- current_question()
-    
     if (current_q > 2) {
-      # Decrement current_question to go back to previous feature question
       current_question(current_q - 1)
     } else if (current_q == 2) {
-      # If on the first feature question, go back to Preparation Page 1
       current_question(1)
     }
   })
   
-  # Back Button Logic for Neighborhood Selection
-  observeEvent(input$back_button_neigh_sel, {
+  # Navigation logic after Neighborhood Selection
+  observeEvent(input$next_neigh_sel, {
+    current_question(4 + length(features))
+  })
+  
+  observeEvent(input$back_neigh_sel, {
     current_q <- current_question()
     if (current_q > 3 + length(features)) {
       current_question(current_q -1)
     }
   })
   
-  # Navigation logic for First New Question (People Living)
-  observeEvent(input$next_button_q1, {
-    # Validate input
+  # HH Size
+  observeEvent(input$next_hhsize, {
     if (is.null(input$household_size) || input$household_size < 1) {
       showModal(modalDialog(
         title = "Input Required",
@@ -578,19 +560,16 @@ server <- function(input, output, session) {
     } else {
       # Store the input
       household_size(input$household_size)
-      # Proceed to Second New Question
       current_question(5 + length(features))
     }
   })
   
-  # Back Button Logic for First New Question
-  observeEvent(input$back_button_q1, {
-    current_question(3 + length(features))  # Return to Neighborhood Selection
+  observeEvent(input$back_hhsize, {
+    current_question(4 + length(features))
   })
   
-  # Navigation logic for Second New Question (Annual Income)
-  observeEvent(input$next_button_q2_new, {
-    # Validate input
+  # Annual income
+  observeEvent(input$next_income, {
     if (is.null(input$annual_income) || input$annual_income < 0) {
       showModal(modalDialog(
         title = "Input Required",
@@ -607,8 +586,8 @@ server <- function(input, output, session) {
   })
   
   # Back Button Logic for Second New Question
-  observeEvent(input$back_button_q2_new, {
-    current_question(4 + length(features))  # Return to First New Question
+  observeEvent(input$back_income, {
+    current_question(5 + length(features))  
   })
   
   # Restart
@@ -616,17 +595,13 @@ server <- function(input, output, session) {
     current_question(1)
     show("welcome_panel")
     hide("main_content")
-    # Reset selections
     preferred_neighborhoods(c())
-    # Reset new inputs
     household_size(NULL)
     annual_income(NULL)
   })
   
   
   #### Neighborhood Selection Functionality ####
-  
-  # Selection Method Buttons on Neighborhood Selection Page
   observeEvent(input$select_map, {
     showModal(modalDialog(
       title = "Select Preferred Areas via Map",
@@ -650,7 +625,6 @@ server <- function(input, output, session) {
         modalButton("Close"),
         actionButton("save_list_selection", "Save Selection", class = "btn-custom")
       ),
-      # Modal content: selection inputs
       fluidPage(
         h4("Select regions and neighborhoods to include:"),
         br(),
@@ -836,7 +810,7 @@ server <- function(input, output, session) {
       } else if (response == "Very Much") {
         return(2)
       } else {
-        return(0)  # Default to 0 if no response
+        return(0)
       }
     }, simplify = TRUE)
     
@@ -850,7 +824,6 @@ server <- function(input, output, session) {
     preferred_neighborhoods_current <- preferred_neighborhoods()
     
     if (length(preferred_neighborhoods_current) > 0) {
-      # If preferred neighborhoods are selected, focus on them
       recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
     } else {
       # Else, use all neighborhoods
@@ -1039,7 +1012,7 @@ server <- function(input, output, session) {
   })
   
   #### Additional Navigation Logic ####
-  observeEvent(input$back_button_prep1, {
+  observeEvent(input$back_info_1, {
     hide("main_content")
     show("welcome_panel")
   })
