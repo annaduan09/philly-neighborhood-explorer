@@ -418,17 +418,7 @@ server <- function(input, output, session) {
             ),
             br(),
             # Leaflet map output
-            leafletOutput("results_map", height = "600px"),
-            br(),
-            # List of recommended neighborhoods
-            h4("Neighborhoods:"),
-            uiOutput("recommended_neighborhoods"),
-            br(),
-            div(
-              style = "text-align: center;",
-              actionButton("start_over", "Start Over", class = "btn-custom", 
-                           style = "padding: 10px 20px; font-size: 14px;")
-            )
+            leafletOutput("results_map", height = "600px")
         )
       )
     }
@@ -712,7 +702,6 @@ server <- function(input, output, session) {
   })
   
   #### Results Page ####
-  
   # Render the results map on the results page
   output$results_map <- renderLeaflet({
     req(current_question() == (4 + length(features)))
@@ -769,28 +758,46 @@ server <- function(input, output, session) {
     # Multiply each feature column by the corresponding weight
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
     
-    # Compute the weighted sum
+    # Compute the weighted sum (rowMeans)
     recommended_data$score <- rowMeans(weighted_features)
+    
+    # Arrange the data by descending score
     recommended_data <- arrange(recommended_data, desc(score))
     
-    # Create color palette
-    pal <- colorNumeric(palette = "YlGnBu", 
-                        domain = recommended_data$score,
-                        reverse = TRUE)
+    # Select top 5 neighborhoods (adjust as needed)
+    top_neighborhoods <- head(recommended_data, 5)
     
+    # Compute centroids for each neighborhood to place markers
+    top_neighborhoods_centroids <- st_centroid(top_neighborhoods)
+    
+    # Extract longitude and latitude from centroids
+    top_neighborhoods_coords <- st_coordinates(top_neighborhoods_centroids)
+    
+    # Add longitude and latitude to the data frame
+    top_neighborhoods$lon <- top_neighborhoods_coords[, 1]
+    top_neighborhoods$lat <- top_neighborhoods_coords[, 2]
+
     # Create the map
-    leaflet(data = head(recommended_data, 5),
-            options = leafletOptions(minZoom = 10)) %>%
+    leaflet(data = top_neighborhoods, options = leafletOptions(minZoom = 10)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
-      setView(lng = -75.13406,
-              lat = 40.00761,
-              zoom = 11) %>%
+      setView(lng = -75.13406, lat = 40.00761, zoom = 11) %>%
       setMaxBounds(
         lng1 = -75.28027,
         lat1 = 39.867,
         lng2 = -74.95576,
         lat2 = 40.13799
       ) %>%
+      addPolygons(data = nb, 
+                  fillColor = "black",
+                  color = "transparent",
+                  weight = 0.1,
+                  fillOpacity = 0.1,
+                  highlight = highlightOptions(
+                    weight = 2,
+                    color = "white",
+                    fillOpacity = 0.2,
+                    bringToFront = TRUE
+                  )) %>%
       addPolygons(
         fillColor = "darkcyan",
         color = "white",
@@ -798,7 +805,7 @@ server <- function(input, output, session) {
         weight = 1,
         opacity = 1,
         fillOpacity = 0.7,
-        label = ~paste0(neighborhood, ": Score ", round(score, 2)),
+        label = ~neighborhood,
         popup = ~paste0("<strong>", neighborhood, "</strong><br/>Score: ", round(score, 2)),
         highlight = highlightOptions(
           weight = 2,
@@ -806,77 +813,9 @@ server <- function(input, output, session) {
           fillOpacity = 0.9,
           bringToFront = TRUE
         )
-      )
+      ) 
   })
   
-  # Generate and render the list of recommended neighborhoods
-  output$recommended_neighborhoods <- renderUI({
-    req(current_question() == (4 + length(features)))
-    
-    # Collect user preferences and map to weights
-    preference_weights <- sapply(names(features), function(feature_key) {
-      response <- input[[paste0("importance_", gsub(" ", "_", feature_key))]]
-      if (response == "No") {
-        return(0)
-      } else if (response == "Yes") {
-        return(1)
-      } else if (response == "Very Much") {
-        return(2)
-      } else {
-        return(0)  # Default to 0 if no response
-      }
-    }, simplify = TRUE)
-    
-    names(preference_weights) <- names(features)
-    
-    # For debugging purposes
-    print("User Preference Weights:")
-    print(preference_weights)
-    
-    # Get all preferred neighborhoods
-    preferred_neighborhoods_current <- preferred_neighborhoods()
-    
-    if (length(preferred_neighborhoods_current) > 0) {
-      # If preferred neighborhoods are selected, focus on them
-      recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
-    } else {
-      # Else, use all neighborhoods
-      recommended_data <- nb
-    }
-    
-    # Ensure all necessary feature columns are present and numeric
-    missing_features <- setdiff(names(features), colnames(recommended_data))
-    if (length(missing_features) > 0) {
-      stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
-    }
-    
-    # Drop geometry to avoid issues with non-numeric data
-    recommended_data_no_geom <- st_drop_geometry(recommended_data)
-    
-    # Extract feature data
-    feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
-    
-    # Convert feature columns to numeric and replace NAs with zeros
-    for (feature in names(features)) {
-      feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
-      feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
-    }
-    
-    # Multiply each feature column by the corresponding weight
-    weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
-    
-    # Compute the weighted sum
-    recommended_data$score <- rowMeans(weighted_features)
-    
-    # Aggregate scores by neighborhood (since nb may have multiple geometries per neighborhood)
-    neighborhood_scores <- aggregate(score ~ neighborhood, data = recommended_data, FUN = mean)
-    
-    # Sort neighborhoods by score in descending order
-    neighborhood_scores <- neighborhood_scores[order(-neighborhood_scores$score), ]
-    
-    # Render the list of recommended neighborhoods
-    renderRecommendedList(neighborhood_scores$neighborhood)
-  })
   
   #### Additional Navigation Logic ####
   observeEvent(input$back_button_prep1, {
