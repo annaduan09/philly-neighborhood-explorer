@@ -32,8 +32,8 @@ ui <- fluidPage(
     div(
       style = "text-align: center;",
       img(
-        src = "welcome.png",  # Ensure 'welcome.png' is inside 'www' directory
-        class = "img-fluid",  # Bootstrap class for responsive images
+        src = "welcome.png",  
+        class = "img-fluid",  
         height = "80vh",
         width = "auto",
         alt = "Welcome Image",
@@ -49,7 +49,7 @@ ui <- fluidPage(
          It can be hard to know where to look for a home with a housing voucher. 
          Answering a few questions might help you narrow down your housing search."),
       br(),
-      actionButton("start_button", "Let's Go",  # Changed button text to "Let's Go"
+      actionButton("start_button", "Let's Go",  
                    class = "btn-custom")
     ),
     br(),
@@ -155,25 +155,24 @@ region_list <- list(
 # Neighborhood features to rank/filter neighborhoods on
 # Use column names as keys and display names as values
 features <- c(
+  "shootings_100k" = "Safety",
   "restaurant" = "Restaurants",
-  "grocery" = "Grocery stores",
   "shopping" = "Shopping",
   "parks" = "Parks",
   "healthcare" = "Healthcare",
   "same_house_pct2022" = "Longtime residents",
-  "vouchers" = "Voucher users",
-  "shootings_100k" = "Safety"
+  "vouchers" = "Voucher users"
 )
 
 # List of questions and info texts
 question_info_list <- list(
+  "shootings_100k" = list(
+    question = "Is living in a safe neighborhood important to you?",
+    info = "A safe neighborhood has less crime and can help you feel more secure."
+  ),
   "restaurant" = list(
     question = "Do you want to live near places to eat out?",
     info = "Living close to restaurants means you can easily go out to eat and have more choices."
-  ),
-  "grocery" = list(
-    question = "Is it important for you to live near grocery stores?",
-    info = "Living near grocery stores makes it easier to buy food and things you need every day."
   ),
   "shopping" = list(
     question = "Do you want to live near shops and stores?",
@@ -194,10 +193,6 @@ question_info_list <- list(
   "vouchers" = list(
     question = "Do you want to live in a place where other people use housing vouchers?",
     info = "In neighborhoods with more voucher holders, it might be easier to find landlords who accept vouchers."
-  ),
-  "shootings_100k" = list(
-    question = "Is living in a safe neighborhood important to you?",
-    info = "A safe neighborhood has less crime and can help you feel more secure."
   )
 )
 
@@ -279,20 +274,19 @@ server <- function(input, output, session) {
       tagList(
         # Progress Bar
         renderProgressBar(progress_percent),
-        # Preparation Card with centered and playful layout
         div(class = "card",
             div(
               style = "text-align: center;",
-              h2("Welcome to Philly Neighborhood Explorer! 🎉"),
+              h2("Welcome to Philly Neighborhood Explorer!"),
               br(),
-              p("We're here to help you find the perfect neighborhood in Philadelphia using your housing voucher."),
+              p("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher."),
               p("Let's get started by understanding what features are important to you.")
             ),
             br(),
             # Center the "Let's Go" button
             div(
               style = "text-align: center;",
-              actionButton("next_button_prep1", "Let's Go",  # Changed button text to "Let's Go"
+              actionButton("next_button_prep1", "Let's Go",  
                            class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
         )
@@ -306,7 +300,7 @@ server <- function(input, output, session) {
       current_question_text <- question_info_list[[current_feature_key]]$question
       current_info_text <- question_info_list[[current_feature_key]]$info
       feature_input_id <- paste0("importance_", gsub(" ", "_", current_feature_key))
-      image_src <- paste0(current_feature_key, ".png")  # Construct image filename
+      image_src <- paste0(current_feature_key, ".png")  
       
       tagList(
         # Progress Bar
@@ -351,7 +345,7 @@ server <- function(input, output, session) {
         div(class = "card",
             div(
               style = "text-align: center;",
-              h2("Almost There! 🚀"),
+              h2("Almost There."),
               br(),
               p("Next, you'll select the neighborhoods you're interested in living. You can choose them by name or interact with the map."),
               p("This will help us tailor the best recommendations for you.")
@@ -374,9 +368,9 @@ server <- function(input, output, session) {
         div(class = "card",
             div(
               style = "text-align: center;",
-              h2("Select Your Preferred Neighborhoods 🏡"),
+              h2("Select Your Preferred Neighborhoods"),
               br(),
-              p("Choose the neighborhoods you'd love to live in. Select via the map or from the list below.")
+              p("Choose the neighborhoods you'd prefer to live in. Select via the map or from the list below.")
             ),
             br(),
             fluidRow(
@@ -395,7 +389,7 @@ server <- function(input, output, session) {
                      renderPreferredList(),
                      br(),
                      div(
-                       actionButton("clear_all", "Clear All Selections", class = "btn-custom", 
+                       actionButton("clear_all", "Clear All", class = "btn-custom", 
                                     style = "padding: 10px 20px; font-size: 14px;")
                      )
               )
@@ -418,13 +412,13 @@ server <- function(input, output, session) {
         div(class = "card",
             div(
               style = "text-align: center;",
-              h2("Your Neighborhood Matches 🌟"),
+              h2("Your Neighborhood Matches"),
               br(),
-              p("Based on your preferences, here are some neighborhoods you might love:")
+              p("Based on your preferences, here are some neighborhoods you might like:")
             ),
             br(),
             # Leaflet map output
-            leafletOutput("results_map", height = "700px"),
+            leafletOutput("results_map", height = "600px"),
             br(),
             # List of recommended neighborhoods
             h4("Neighborhoods:"),
@@ -511,7 +505,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Restart the app when "Start Over" is clicked
+  # Restart
   observeEvent(input$start_over, {
     current_question(1)
     show("welcome_panel")
@@ -533,7 +527,7 @@ server <- function(input, output, session) {
         modalButton("Close"),
         actionButton("save_map_selection", "Save Selection", class = "btn-custom")
       ),
-      leafletOutput("philly_map_selection", height = "500px")
+      leafletOutput("philly_map_selection", height = "600px")
     ))
   })
   
@@ -776,7 +770,8 @@ server <- function(input, output, session) {
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
     
     # Compute the weighted sum
-    recommended_data$score <- rowSums(weighted_features)
+    recommended_data$score <- rowMeans(weighted_features)
+    recommended_data <- arrange(recommended_data, desc(score))
     
     # Create color palette
     pal <- colorNumeric(palette = "YlGnBu", 
@@ -784,7 +779,7 @@ server <- function(input, output, session) {
                         reverse = TRUE)
     
     # Create the map
-    leaflet(data = recommended_data,
+    leaflet(data = head(recommended_data, 5),
             options = leafletOptions(minZoom = 10)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406,
@@ -797,7 +792,7 @@ server <- function(input, output, session) {
         lat2 = 40.13799
       ) %>%
       addPolygons(
-        fillColor = ~pal(score),
+        fillColor = "darkcyan",
         color = "white",
         dashArray = "3",
         weight = 1,
@@ -811,10 +806,7 @@ server <- function(input, output, session) {
           fillOpacity = 0.9,
           bringToFront = TRUE
         )
-      ) %>%
-      addLegend("bottomright", pal = pal, values = ~score,
-                title = "Neighborhood Match",
-                opacity = 1)
+      )
   })
   
   # Generate and render the list of recommended neighborhoods
@@ -874,7 +866,7 @@ server <- function(input, output, session) {
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
     
     # Compute the weighted sum
-    recommended_data$score <- rowSums(weighted_features)
+    recommended_data$score <- rowMeans(weighted_features)
     
     # Aggregate scores by neighborhood (since nb may have multiple geometries per neighborhood)
     neighborhood_scores <- aggregate(score ~ neighborhood, data = recommended_data, FUN = mean)
@@ -882,17 +874,11 @@ server <- function(input, output, session) {
     # Sort neighborhoods by score in descending order
     neighborhood_scores <- neighborhood_scores[order(-neighborhood_scores$score), ]
     
-    # For debugging purposes
-    print("Neighborhood Scores:")
-    print(neighborhood_scores)
-    
     # Render the list of recommended neighborhoods
     renderRecommendedList(neighborhood_scores$neighborhood)
   })
   
   #### Additional Navigation Logic ####
-  
-  # Back Button Logic for Preparation Page 1 (optional if you want to allow going back from prep1)
   observeEvent(input$back_button_prep1, {
     hide("main_content")
     show("welcome_panel")
