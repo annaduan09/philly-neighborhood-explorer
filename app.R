@@ -1,34 +1,29 @@
 # Load required libraries
 library(shiny)
 library(shinyjs)
-library(conflicted)  # For conflict resolution
-library(shinythemes)  # For themes
-library(leaflet)      # For interactive maps
-library(bslib)        # For advanced theming and styling
-library(sf)           # For spatial data handling
-library(RColorBrewer) # For color palettes
+library(conflicted)  
+library(shinythemes)  
+library(leaflet)      
+library(bslib)        
+library(sf)           
 
 conflicts_prefer(shinyjs::show)
 
 #### UI ####
 ui <- fluidPage(
-  useShinyjs(),  # Initialize shinyjs
-  
-  # Include external resources in the header
+  useShinyjs(),  
+
   tags$head(
-    # Link to Google Fonts
     tags$link(
       href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap",
       rel = "stylesheet"
     ),
-    # Include your custom CSS
     includeCSS("www/styles.css")
   ),
   
-  # Welcome Panel
+##### Welcome panel #####
   div(
     id = "welcome_panel",
-    # Center the welcome image
     div(
       style = "text-align: center;",
       img(
@@ -40,9 +35,8 @@ ui <- fluidPage(
         style = "padding: 0vh; margin: 0vh;"
       )
     ),
-    # Center the welcome texts and button
     div(
-      style = "text-align: center; margin-top: -60px;",  # Adjust margin as needed
+      style = "text-align: center; margin-top: -60px;", 
       h1("Got a Housing Voucher?"),
       br(),
       h4("Philadelphia is a big city made up of smaller areas and neighborhoods. 
@@ -53,7 +47,6 @@ ui <- fluidPage(
                    class = "btn-custom")
     ),
     br(),
-    # Center the informational text
     div(
       style = "text-align: center;",
       p("This will take ~2 minutes")
@@ -61,15 +54,13 @@ ui <- fluidPage(
     br()
   ),
   
-  # Main Content Panel (initially hidden)
+##### Question panel #####
   hidden(
     div(
       id = "main_content",
       uiOutput("question_ui")
     )
   ),
-  
-  # Footer
   div(
     id = "footer",
     p("© 2024 Philly Neighborhood Explorer")
@@ -77,23 +68,14 @@ ui <- fluidPage(
 )
 
 #### DATA ####
-# Load panel
-nb <- st_read("panel.geojson")  # Original dataset with multiple geometries per neighborhood
-
-# Ensure the 'neighborhood' column is character type
-nb$neighborhood <- as.character(nb$neighborhood)
-
-# Transform CRS of 'nb' to WGS84 (EPSG:4326)
-nb <- st_transform(nb, crs = 4326)
+nb <- st_read("panel.geojson")
+# nb <- st_transform(nb, crs = 4326)
 
 # Load the neighborhood boundaries
-neigh_bounds <- st_read("phl_neighs_2024.geojson")  # New dataset with single geometry per neighborhood
-
-# Assign 'neighborhood' column using 'MAPNAME'
+neigh_bounds <- st_read("phl_neighs_2024.geojson")  
 neigh_bounds$neighborhood <- as.character(neigh_bounds$MAPNAME)
 
-# Transform CRS of 'neigh_bounds' to WGS84 (EPSG:4326)
-neigh_bounds <- st_transform(neigh_bounds, crs = 4326)
+# neigh_bounds <- st_transform(neigh_bounds, crs = 4326)
 
 # Neighborhood lists by region
 north_neighborhoods <- c("Juniata Park", "Northwood", "Upper Kensington", 
@@ -141,7 +123,7 @@ south_neighborhoods <- c("Point Breeze", "Girard Estates", "Passyunk Square",
 southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick", "Penrose", "Paschall", "Grays Ferry",
                              "Clearview")
 
-# List of all neighborhoods and regions
+# List of regions
 region_list <- list(
   "North" = north_neighborhoods,
   "Northwest" = northwest_neighborhoods,
@@ -152,8 +134,7 @@ region_list <- list(
   "Southwest" = southwest_neighborhoods
 )
 
-# Neighborhood features to rank/filter neighborhoods on
-# Use column names as keys and display names as values
+# Neighborhood features
 features <- c(
   "shootings_100k" = "Safety",
   "restaurant" = "Restaurants",
@@ -164,7 +145,7 @@ features <- c(
   "vouchers" = "Voucher users"
 )
 
-# List of questions and info texts
+# List of questions
 question_info_list <- list(
   "shootings_100k" = list(
     question = "Is living in a safe neighborhood important to you?",
@@ -205,31 +186,24 @@ renderProgressBar <- function(percent) {
                     style = paste0("width: ", percent, "%;"),
                     `aria-valuenow` = percent,
                     `aria-valuemin` = "0",
-                    `aria-valuemax` = "100"
-           )
-  )
-}
+                    `aria-valuemax` = "100"))}
 
 #### SERVER ####
 server <- function(input, output, session) {
-  # Hide the welcome panel and show the main content when the button is clicked
+  
+  current_question <- reactiveVal(1)
+  total_steps <- length(features) + 6
+  preferred_neighborhoods <- reactiveVal(c())
+  household_size <- reactiveVal(NULL)
+  annual_income <- reactiveVal(NULL)
+  matched_5_neighs <- reactiveVal(NULL)
+  
+  ##### Start App #####
   observeEvent(input$start_button, {
     hide("welcome_panel")
     show("main_content")
-    current_question(1)  # Start with the first prep page
+    current_question(1)  
   })
-  
-  # Reactive value to keep track of the current question
-  current_question <- reactiveVal(1)
-  
-  # Total number of steps (questions + prep pages + results)
-  total_steps <- length(features) + 6
-  
-  # Reactive value to store all preferred neighborhoods
-  preferred_neighborhoods <- reactiveVal(c())
-  
-  household_size <- reactiveVal(NULL)
-  annual_income <- reactiveVal(NULL)
 
   renderPreferredList <- function() {
     neighborhoods <- preferred_neighborhoods()
@@ -266,15 +240,12 @@ server <- function(input, output, session) {
   
   # Render UI for the questions and prep pages
   output$question_ui <- renderUI({
-    current_q <- current_question()
     
-    # Calculate progress percentage
+    current_q <- current_question()
     progress_percent <- ((current_q - 1) / (total_steps)) * 100
     
     if (current_q == 1) {
-      # Preparation Page 1
       tagList(
-        # Progress Bar
         renderProgressBar(progress_percent),
         div(class = "card",
             div(
@@ -285,7 +256,6 @@ server <- function(input, output, session) {
               p("Let's get started by understanding what features are important to you.")
             ),
             br(),
-            # Center the "Let's Go" button
             div(
               style = "text-align: center;",
               actionButton("next_info_1", "Let's Go",  
@@ -294,6 +264,7 @@ server <- function(input, output, session) {
         )
       )
     } else if (current_q >= 2 && current_q <= (1 + length(features))) {
+      
       # Feature Importance Questions
       feature_index <- current_q -1
       feature_keys <- names(features)
@@ -305,11 +276,9 @@ server <- function(input, output, session) {
       image_src <- paste0(current_feature_key, ".png")  
       
       tagList(
-        # Progress Bar
         renderProgressBar(progress_percent),
         # Question Card
         div(class = "card",
-            # Image and question text inline
             div(
               style = "display: flex; align-items: center; justify-content: center;",
               img(
@@ -330,7 +299,6 @@ server <- function(input, output, session) {
               inline = TRUE
             ),
             br(),
-            # Action Buttons
             div(
               style = "text-align: center;",
               actionButton("back_feature", "Back", class = "btn-custom", style = "margin-right: 10px;"),
@@ -341,9 +309,7 @@ server <- function(input, output, session) {
     } else if (current_q == (2 + length(features))) {
       # Preparation Page 2
       tagList(
-        # Progress Bar
         renderProgressBar(progress_percent),
-        # Preparation Card with centered and playful layout
         div(class = "card",
             div(
               style = "text-align: center;",
@@ -353,20 +319,17 @@ server <- function(input, output, session) {
               p("This will help us tailor the best recommendations for you.")
             ),
             br(),
-            # Center the "Let's Go" button
             div(
               style = "text-align: center;",
-              actionButton("next_info_2", "Let's Go",  # Changed button text to "Let's Go"
+              actionButton("next_info_2", "Let's Go",  
                            class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
         )
       )
     } else if (current_q == (3 + length(features))) {
-      # Neighborhood Selection UI (Select Preferred Areas)
+      # Neighborhood Selection
       tagList(
-        # Progress Bar
         renderProgressBar(progress_percent),
-        # Neighborhood Selection Card
         div(class = "card",
             div(
               style = "text-align: center;",
@@ -377,7 +340,6 @@ server <- function(input, output, session) {
             br(),
             fluidRow(
               column(6,
-                     # Selection Method Buttons
                      div(class = "selection-buttons",
                          actionButton("select_map", "Select via Map", class = "btn-selection", 
                                       style = "width: 100%; margin-bottom: 10px; padding: 15px; font-size: 14px;"),
@@ -397,7 +359,6 @@ server <- function(input, output, session) {
               )
             ),
             br(),
-            # Action Buttons
             div(
               style = "text-align: center;",
               actionButton("back_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
@@ -406,11 +367,9 @@ server <- function(input, output, session) {
         )
       )
     } else if (current_q == (4 + length(features))) {
-      # First New Question: How many people will be living in this unit?
+      # Household size
       tagList(
-        # Progress Bar
         renderProgressBar(progress_percent),
-        # New Question 1 Card
         div(class = "card",
             div(
               style = "text-align: center;",
@@ -429,7 +388,6 @@ server <- function(input, output, session) {
               step = 1
             ),
             br(),
-            # Action Buttons
             div(
               style = "text-align: center;",
               actionButton("back_hhsize", "Back", class = "btn-custom", style = "margin-right: 10px;"),
@@ -438,11 +396,9 @@ server <- function(input, output, session) {
         )
       )
     } else if (current_q == (5 + length(features))) {
-      # Second New Question: What is your estimated annual income?
+      # Annual income
       tagList(
-        # Progress Bar
         renderProgressBar(progress_percent),
-        # New Question 2 Card
         div(class = "card",
             div(
               style = "text-align: center;",
@@ -461,7 +417,6 @@ server <- function(input, output, session) {
               step = 5000
             ),
             br(),
-            # Action Buttons
             div(
               style = "text-align: center;",
               actionButton("back_income", "Back", class = "btn-custom", style = "margin-right: 10px;"),
@@ -470,11 +425,9 @@ server <- function(input, output, session) {
         )
       )
     } else if (current_q == (6 + length(features))) {
-      # Results Page UI
+      # Results Page
       tagList(
-        # Progress Bar
         renderProgressBar(progress_percent),
-        # Results Card
         div(class = "card",
             div(
               style = "text-align: center;",
@@ -490,7 +443,6 @@ server <- function(input, output, session) {
       )
     }
   })
-  
   
   output$monthly_payment <- renderText({
     income <- annual_income()
@@ -521,6 +473,11 @@ server <- function(input, output, session) {
   # INFO 1
   observeEvent(input$next_info_1, {
     current_question(2) 
+  })
+  
+  observeEvent(input$back_info_1, {
+    hide("main_content")
+    show("welcome_panel")
   })
   
   # INFO 2
@@ -627,7 +584,7 @@ server <- function(input, output, session) {
   })
   
   
-  #### Neighborhood Selection Functionality ####
+  #### Neighborhood Selection ####
   observeEvent(input$select_map, {
     showModal(modalDialog(
       title = "Select Preferred Areas via Map",
@@ -792,7 +749,6 @@ server <- function(input, output, session) {
   
   # Save the selected areas when the user clicks "Save Selection" in the list modal
   observeEvent(input$save_list_selection, {
-    # Collect selected neighborhoods from each region
     neighborhoods <- unlist(lapply(names(region_list), function(region_name) {
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       input[[neighborhood_input_id]]
@@ -801,17 +757,12 @@ server <- function(input, output, session) {
     updated_preferences <- unique(c(preferred_neighborhoods(), neighborhoods))
     preferred_neighborhoods(updated_preferences)
     
-    # For debugging purposes
-    print("Preferred Neighborhoods from List:")
-    print(preferred_neighborhoods())
-    
     removeModal()
   })
   
-  # Handle removal of individual preferred neighborhoods
+  # Handle removal of individual neighborhoods
   observe({
     lapply(preferred_neighborhoods(), function(nbh) {
-      # Create unique input IDs by replacing spaces with underscores
       input_id <- paste0("remove_", gsub(" ", "_", nbh))
       # Use isolate to prevent unnecessary reactivity
       observeEvent(input[[input_id]], {
@@ -822,6 +773,7 @@ server <- function(input, output, session) {
   })
   
   #### Results Page ####
+  output
   output$results_map <- renderLeaflet({
     req(current_question() == (6 + length(features)))
     
@@ -840,18 +792,12 @@ server <- function(input, output, session) {
     }, simplify = TRUE)
     
     names(preference_weights) <- names(features)
-    
-    # For debugging purposes
-    print("User Preference Weights:")
-    print(preference_weights)
-    
-    # Get all preferred neighborhoods
+  
     preferred_neighborhoods_current <- preferred_neighborhoods()
     
     if (length(preferred_neighborhoods_current) > 0) {
       recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
     } else {
-      # Else, use all neighborhoods
       recommended_data <- nb
     }
     
@@ -860,39 +806,23 @@ server <- function(input, output, session) {
     if (length(missing_features) > 0) {
       stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
     }
-    
-    # Drop geometry to avoid issues with non-numeric data
     recommended_data_no_geom <- st_drop_geometry(recommended_data)
-    
-    # Extract feature data
     feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
-    
-    # Convert feature columns to numeric and replace NAs with zeros
     for (feature in names(features)) {
       feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
       feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
     }
-    
-    # Multiply each feature column by the corresponding weight
+  
+    # Calculate weighted scores
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
-    
-    # Compute the weighted sum (rowMeans)
     recommended_data$score <- rowMeans(weighted_features)
     
-    # Arrange the data by descending score
+    # Find top 5 neighborhood matches
     recommended_data <- arrange(recommended_data, desc(score))
-    
-    # Select top 5 neighborhoods (adjust as needed)
     top_neighborhoods <- head(recommended_data, 5)
     print(head(top_neighborhoods))
-    
-    # Compute centroids for each neighborhood to place markers or labels
     top_neighborhoods_centroids <- st_centroid(top_neighborhoods)
-    
-    # Extract longitude and latitude from centroids
     top_neighborhoods_coords <- st_coordinates(top_neighborhoods_centroids)
-    
-    # Add longitude and latitude to the data frame
     top_neighborhoods$lon <- top_neighborhoods_coords[, 1]
     top_neighborhoods$lat <- top_neighborhoods_coords[, 2]
     
@@ -906,7 +836,6 @@ server <- function(input, output, session) {
         lng2 = -74.95576,
         lat2 = 40.13799
       ) %>%
-      # Add background polygons (all neighborhoods with low opacity)
       addPolygons(
         fillColor = "black",
         color = "transparent",
@@ -919,7 +848,6 @@ server <- function(input, output, session) {
           bringToFront = TRUE
         )
       ) %>%
-      # Add polygons for top neighborhoods with higher opacity and color
       addPolygons(
         data = top_neighborhoods,
         fillColor = "darkcyan",
@@ -937,7 +865,6 @@ server <- function(input, output, session) {
           bringToFront = TRUE
         )
       ) %>%
-      # Add permanent labels for each top neighborhood
       addLabelOnlyMarkers(
         data = top_neighborhoods,
         lng = ~lon,
@@ -956,8 +883,6 @@ server <- function(input, output, session) {
           )
         )
       )
-    
-    # Render the map
     map
   })
   
@@ -1034,12 +959,6 @@ server <- function(input, output, session) {
         })
       )
     )
-  })
-  
-  #### Additional Navigation Logic ####
-  observeEvent(input$back_info_1, {
-    hide("main_content")
-    show("welcome_panel")
   })
 }
 
