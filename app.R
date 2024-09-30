@@ -68,14 +68,13 @@ ui <- fluidPage(
 )
 
 #### DATA ####
-nb <- st_read("panel.geojson")
-# nb <- st_transform(nb, crs = 4326)
+nb <- st_read("panel.geojson") %>%
+  st_transform(nb, crs = 4326)
 
 # Load the neighborhood boundaries
-neigh_bounds <- st_read("phl_neighs_2024.geojson")  
+neigh_bounds <- st_read("phl_neighs_2024.geojson")  %>%
+  st_transform(neigh_bounds, crs = 4326)
 neigh_bounds$neighborhood <- as.character(neigh_bounds$MAPNAME)
-
-# neigh_bounds <- st_transform(neigh_bounds, crs = 4326)
 
 # Neighborhood lists by region
 north_neighborhoods <- c("Juniata Park", "Northwood", "Upper Kensington", 
@@ -197,6 +196,7 @@ server <- function(input, output, session) {
   household_size <- reactiveVal(NULL)
   annual_income <- reactiveVal(NULL)
   matched_5_neighs <- reactiveVal(NULL)
+  selected_areas <- reactiveVal(c())
   
   ##### Start App #####
   observeEvent(input$start_button, {
@@ -621,9 +621,7 @@ server <- function(input, output, session) {
     preferred_neighborhoods(c())
     showNotification("All selected neighborhoods have been cleared.", type = "message")
   })
-  
-  # Reactive value to store selected neighborhoods from the map
-  selected_areas <- reactiveVal(c())
+
   
   # Render the Leaflet map in the map selection modal
   output$philly_map_selection <- renderLeaflet({
@@ -773,10 +771,7 @@ server <- function(input, output, session) {
   })
   
   #### Results Page ####
-  output
-  output$results_map <- renderLeaflet({
-    req(current_question() == (6 + length(features)))
-    
+  neighs_matched <- reactive({
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
       response <- input[[paste0("importance_", gsub(" ", "_", feature_key))]]
@@ -792,7 +787,7 @@ server <- function(input, output, session) {
     }, simplify = TRUE)
     
     names(preference_weights) <- names(features)
-  
+    
     preferred_neighborhoods_current <- preferred_neighborhoods()
     
     if (length(preferred_neighborhoods_current) > 0) {
@@ -812,7 +807,7 @@ server <- function(input, output, session) {
       feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
       feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
     }
-  
+    
     # Calculate weighted scores
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
     recommended_data$score <- rowMeans(weighted_features)
@@ -820,11 +815,17 @@ server <- function(input, output, session) {
     # Find top 5 neighborhood matches
     recommended_data <- arrange(recommended_data, desc(score))
     top_neighborhoods <- head(recommended_data, 5)
-    print(head(top_neighborhoods))
     top_neighborhoods_centroids <- st_centroid(top_neighborhoods)
     top_neighborhoods_coords <- st_coordinates(top_neighborhoods_centroids)
     top_neighborhoods$lon <- top_neighborhoods_coords[, 1]
     top_neighborhoods$lat <- top_neighborhoods_coords[, 2]
+    
+    return(top_neighborhoods)
+  })
+  
+  ##### Result Map ##### 
+  output$results_map <- renderLeaflet({
+    req(current_question() == (6 + length(features)))
     
     # Initialize the Leaflet map
     map <- leaflet(data = nb, options = leafletOptions(minZoom = 10)) %>%
@@ -849,7 +850,7 @@ server <- function(input, output, session) {
         )
       ) %>%
       addPolygons(
-        data = top_neighborhoods,
+        data = neighs_matched(),
         fillColor = "darkcyan",
         color = "white",
         dashArray = "3",
@@ -866,7 +867,7 @@ server <- function(input, output, session) {
         )
       ) %>%
       addLabelOnlyMarkers(
-        data = top_neighborhoods,
+        data = neighs_matched(),
         lng = ~lon,
         lat = ~lat,
         label = ~neighborhood,
@@ -886,75 +887,14 @@ server <- function(input, output, session) {
     map
   })
   
-  # Render the sidebar card listing the top 5 neighborhoods
+##### Results sidebar card ##### 
   output$recommended_neighborhoods_card <- renderUI({
     req(current_question() == (6 + length(features)))
-    
-    # Collect user preferences and map to weights
-    preference_weights <- sapply(names(features), function(feature_key) {
-      response <- input[[paste0("importance_", gsub(" ", "_", feature_key))]]
-      if (response == "No") {
-        return(0)
-      } else if (response == "Yes") {
-        return(1)
-      } else if (response == "Very Much") {
-        return(2)
-      } else {
-        return(0)  # Default to 0 if no response
-      }
-    }, simplify = TRUE)
-    
-    names(preference_weights) <- names(features)
-    
-    # Get all preferred neighborhoods
-    preferred_neighborhoods_current <- preferred_neighborhoods()
-    
-    if (length(preferred_neighborhoods_current) > 0) {
-      # If preferred neighborhoods are selected, focus on them
-      recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
-    } else {
-      # Else, use all neighborhoods
-      recommended_data <- nb
-    }
-    
-    # Ensure all necessary feature columns are present and numeric
-    missing_features <- setdiff(names(features), colnames(recommended_data))
-    if (length(missing_features) > 0) {
-      stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
-    }
-    
-    # Drop geometry to avoid issues with non-numeric data
-    recommended_data_no_geom <- st_drop_geometry(recommended_data)
-    
-    # Extract feature data
-    feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
-    
-    # Convert feature columns to numeric and replace NAs with zeros
-    for (feature in names(features)) {
-      feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
-      feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
-    }
-    
-    # Multiply each feature column by the corresponding weight
-    weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
-    
-    # Compute the weighted sum (rowMeans)
-    recommended_data$score <- rowMeans(weighted_features)
-    
-    # Arrange the data by descending score
-    recommended_data <- arrange(recommended_data, desc(score))
-    
-    # Select top 5 neighborhoods
-    top_neighborhoods <- head(recommended_data, 5)
-    
-    # Render the list as a styled HTML element
     tags$div(
       tags$ol(
-        lapply(1:nrow(top_neighborhoods), function(i) {
+        lapply(1:nrow(neighs_matched()), function(i) {
           tags$li(
-            tags$strong(top_neighborhoods$tract_neigh[i]),
-            ": Score ",
-            round(top_neighborhoods$score[i], 2)
+            tags$strong(neighs_matched()$neighborhood[i])
           )
         })
       )
