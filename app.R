@@ -55,12 +55,18 @@ ui <- fluidPage(
   ),
   
 ##### Question panel #####
-  hidden(
-    div(
-      id = "main_content",
-      uiOutput("question_ui")
+hidden(
+  div(
+    id = "main_content",
+    # Remove sidebarLayout; use fluidRow for flexible layouts
+    fluidRow(
+      column(
+        width = 12,
+        uiOutput("question_ui") 
+      )
     )
-  ),
+  )
+),
   div(
     id = "footer",
     p("© 2024 Philly Neighborhood Explorer")
@@ -438,9 +444,23 @@ server <- function(input, output, session) {
             br(),
             # Leaflet map output
             leafletOutput("results_map", height = "600px"),
+            # Floating card
+            div(
+              class = "floating-card",
+              h4("Neighborhoods for you"),
+              tags$ol(
+                lapply(1:5, function(i) {
+                  if (i <= nrow(neighs_matched())) {
+                    tags$li(strong(neighs_matched()$neighborhood[i]))
+                  } else {
+                    tags$li("N/A")
+                  }
+                })
+              ),
+              br(),
             p("Your expected monthly payment:", textOutput("monthly_payment"))
         )
-      )
+      ))
     }
   })
   
@@ -888,18 +908,31 @@ server <- function(input, output, session) {
   })
   
 ##### Results sidebar card ##### 
-  output$recommended_neighborhoods_card <- renderUI({
-    req(current_question() == (6 + length(features)))
-    tags$div(
-      tags$ol(
-        lapply(1:nrow(neighs_matched()), function(i) {
-          tags$li(
-            tags$strong(neighs_matched()$neighborhood[i])
-          )
-        })
+output$recommended_neighborhoods_card <- renderUI({
+  req(current_question() == (6 + length(features)))  # Ensure we're on the Results Page
+  matched_neigh <- neighs_matched()
+  
+  # Check if there are any matched neighborhoods
+  if (nrow(matched_neigh) == 0) {
+    return(
+      tags$div(
+        tags$h4("No matching neighborhoods found based on your preferences.")
       )
     )
-  })
+  }
+  
+  # Render the list of matched neighborhoods
+  tags$div(
+    tags$h4("Recommended Neighborhoods:"),
+    tags$ol(
+      lapply(1:nrow(matched_neigh), function(i) {
+        tags$li(
+          tags$strong(matched_neigh$neighborhood[i])
+        )
+      })
+    )
+  )
+})
 }
 
 # Run the app
