@@ -263,3 +263,67 @@ h1, h2, h3, h4 {
   opacity: 0.95;
   transition-delay: 0;
 }
+
+/* Floating card that overlays the Leaflet map */
+.floating-card {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 300px;
+  z-index: 1000;
+  background: white;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out; /* Smooth transitions */
+}
+
+/* Ensure Leaflet container is relative to position the floating card correctly */
+.leaflet-container {
+  position: relative;
+}
+
+/* Style the tab content within the floating card */
+.tab-content {
+  padding: 10px;
+}
+
+/* Style the tab headers */
+.nav-tabs > li > a {
+  color: #333;
+  background-color: transparent;
+  border: none;
+}
+
+/* Style for active tab headers */
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  color: #fff;
+  background-color: #337ab7;
+  border-color: #337ab7 #337ab7 transparent;
+}
+
+/* Hover effect for tab headers */
+.nav-tabs > li > a:hover {
+  background-color: #eee;
+}
+
+/* Responsive design: Adjust floating card on smaller screens */
+@media (max-width: 768px) {
+  .floating-card {
+    width: 90%;
+    left: 5%;
+    top: 10px;
+  }
+}
+
+/* Optional: Style the ordered list within the floating card */
+.floating-card ol {
+  padding-left: 20px;
+}
+
+/* Optional: Style the "Start Over" button within the floating card */
+.floating-card .btn-custom {
+  margin-top: 10px;
+}

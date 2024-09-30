@@ -447,18 +447,30 @@ server <- function(input, output, session) {
             # Floating card
             div(
               class = "floating-card",
-              h4("Neighborhoods for you"),
-              tags$ol(
-                lapply(1:5, function(i) {
-                  if (i <= nrow(neighs_matched())) {
-                    tags$li(strong(neighs_matched()$neighborhood[i]))
-                  } else {
-                    tags$li("N/A")
-                  }
-                })
+              h4("Results"),
+              br(),
+              # Neighborhoods for You Section
+              div(
+                h5("Neighborhoods for You"),
+                tags$ol(
+                  lapply(1:5, function(i) {
+                    if (i <= nrow(neighs_matched())) {
+                      tags$li(strong(neighs_matched()$neighborhood[i]))
+                    } else {
+                      tags$li("N/A")
+                    }
+                  })
+                )
               ),
               br(),
-            p("Your expected monthly payment:", textOutput("monthly_payment"))
+              # Expected Contribution Section
+              div(
+                h5("Your Expected Monthly Payment"),
+                p(textOutput("monthly_payment"))
+              ),
+              br(),
+              # Start Over Button
+              actionButton("start_over", "Start Over", class = "btn-custom", style = "width: 100%;")
         )
       ))
     }
