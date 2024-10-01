@@ -106,6 +106,7 @@ h1, h2, h3 {
 .question-info-text {
   font-size: 18px;
   color: #6c757d; /* Lighter gray */
+  text-align: center;
 }
 
 /* Adjust image responsiveness within card */
@@ -267,7 +268,7 @@ h1, h2, h3, h4 {
 /* Floating card that overlays the Leaflet map */
 .floating-card {
   position: absolute;
-  top: 20px;
+  top: 300px;
   left: 20px;
   width: 300px;
   z-index: 1000;
