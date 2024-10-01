@@ -7,7 +7,16 @@ input[type="number"] {
 body, h1, h2, h3, h4, h5, h6, p, label, .btn, input, button, select { 
   font-family: 'Poppins', sans-serif;
   color: darkslategray;
-  font-weight: 400; /* Adjust as needed */
+  font-weight: 400; 
+}
+
+/* General Styling */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f8f9fa;
+  color: gray;
+  margin: 0;
+  padding: 0;
 }
 
 /* Customize the header */
@@ -106,7 +115,6 @@ h1, h2, h3 {
 .question-info-text {
   font-size: 18px;
   color: #6c757d; /* Lighter gray */
-  text-align: center;
 }
 
 /* Adjust image responsiveness within card */
@@ -114,6 +122,12 @@ h1, h2, h3 {
   max-width: 20%;
   height: auto;
   border-radius: 10px;
+}
+
+/* Image Styling */
+.img-fluid {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Indent neighborhoods */
@@ -141,7 +155,7 @@ h1, h2, h3 {
   border-bottom: none;
 }
 .excluded-item button {
-  background-color: #E74C3C;
+  background-color: salmon;
   color: white;
   border: none;
   padding: 5px 10px;
@@ -150,7 +164,7 @@ h1, h2, h3 {
   font-size: 12px;
 }
 .excluded-item button:hover {
-  background-color: #C0392B;
+  background-color: salmon;
 }
 
 /* Style for selection buttons container */
@@ -267,14 +281,15 @@ h1, h2, h3, h4 {
 
 /* Floating card that overlays the Leaflet map */
 .floating-card {
-  position: absolute;
-  top: 300px;
-  left: 20px;
-  width: 300px;
-  z-index: 1000;
-  background: white;
-  padding: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  bottom: 40%;
+  right: 5%;
+  position: fixed;
+  width: auto;
+  background-color: white;
+  padding: 0 10px 10px 10px;
+  cursor: move;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
   border-radius: 8px;
   transition: all 0.3s ease-in-out; /* Smooth transitions */
 }
@@ -301,8 +316,8 @@ h1, h2, h3, h4 {
 .nav-tabs > li.active > a:hover,
 .nav-tabs > li.active > a:focus {
   color: #fff;
-  background-color: #337ab7;
-  border-color: #337ab7 #337ab7 transparent;
+  background-color: darkcyan;
+  border-color: darkcyan darkcyan transparent;
 }
 
 /* Hover effect for tab headers */
@@ -327,4 +342,94 @@ h1, h2, h3, h4 {
 /* Optional: Style the "Start Over" button within the floating card */
 .floating-card .btn-custom {
   margin-top: 10px;
+}
+
+
+// additions
+
+
+/* Welcome Panel Styling */
+#welcome_panel {
+  text-align: center;
+  padding: 20px;
+  margin-top: 30px;
+}
+
+#welcome_panel h1 {
+  font-size: 36px;
+  font-weight: 600;
+  color: #343a40;
+}
+
+#welcome_panel h4 {
+  font-size: 18px;
+  color: #495057;
+}
+
+#welcome_panel p {
+  color: #6c757d;
+  font-size: 16px;
+}
+
+/* Buttons */
+.btn-custom {
+  background-color: darkcyan;
+  color: white;
+  border: none;
+  text-align: center;
+  margin-right: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-custom:hover {
+  background-color: cyan;
+}
+
+/* Cards */
+.card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress Bar */
+.progress {
+  height: 20px;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.progress-bar {
+  background-color: darkcyan;
+  height: 100%;
+}
+
+
+
+/* Preferred and Recommended Lists */
+.preferred-list, .recommended-list {
+  margin-top: 20px;
+}
+
+.preferred-item, .recommended-item {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f8f9fa;
+}
+
+
+
+/* Map Selection Modal */
+.leaflet-container {
+  border-radius: 8px;
 }

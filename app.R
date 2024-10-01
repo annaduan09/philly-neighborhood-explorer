@@ -77,6 +77,7 @@ hidden(
 nb <- st_read("panel.geojson") %>%
   st_transform(nb, crs = 4326)
 
+
 # Load the neighborhood boundaries
 neigh_bounds <- st_read("phl_neighs_2024.geojson")  %>%
   st_transform(neigh_bounds, crs = 4326)
@@ -143,6 +144,7 @@ region_list <- list(
 features <- c(
   "shootings_100k" = "Safety",
   "shopping" = "Shopping",
+  "grocery" = "Grocery stores",
   "parks" = "Parks",
   "healthcare" = "Healthcare",
   "same_house_pct2022" = "Longtime residents",
@@ -152,27 +154,31 @@ features <- c(
 # List of questions
 question_info_list <- list(
   "shootings_100k" = list(
-    question = "Is living in a safe neighborhood important to you?",
+    question = "Safety",
     info = "A safe neighborhood has less crime and can help you feel more secure."
   ),
   "shopping" = list(
-    question = "Do you want to live near shops and stores?",
+    question = "Commercial corridors",
     info = "Being close to shops means you can easily buy what you need, and the neighborhood might feel more lively."
   ),
+  "grocery" = list(
+    question = "Grocery stores",
+    info = "Living near grocery stores makes it easier to buy fresh food and other essentials."
+  ),
   "parks" = list(
-    question = "Is it important for you to live near parks or green spaces?",
+    question = "Parks and green space",
     info = "Living near parks gives you a place to relax, exercise, and enjoy fresh air."
   ),
   "healthcare" = list(
-    question = "Do you want to live close to hospitals or clinics?",
-    info = "Living near doctors or clinics makes it easier to see a doctor when you need to, especially if you need regular medical care."
+    question = "Hospitals and clinics",
+    info = "Living near healthcare providers makes it easier to see a doctor when you need to, especially if you need regular medical care."
   ),
   "same_house_pct2022" = list(
-    question = "Is it important for you to live where people have lived for a long time?",
-    info = "Neighborhoods with longtime residents often have a strong sense of community where neighbors know each other well."
+    question = "Longtime residents",
+    info = "Neighborhoods where people have lived a long time often have a strong sense of community where neighbors know each other well."
   ),
   "vouchers" = list(
-    question = "Do you want to live in a place where other people use housing vouchers?",
+    question = "Voucher holder households",
     info = "In neighborhoods with more voucher holders, it might be easier to find landlords who accept vouchers."
   )
 )
@@ -271,7 +277,7 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         # Render each feature question in a separate div
         div(class = "card",
-            h2("What features are important to you?"),
+            h2("On a scale of 0 to 3, how important is it to have the following where you live?"),
             br(),
             lapply(names(features), function(feature_key) {
               current_feature_display <- features[[feature_key]]
@@ -283,32 +289,29 @@ server <- function(input, output, session) {
               div(
                 style = "margin-bottom: 20px;",
                 div(
-                  style = "display: flex; align-items: center; justify-content: center;",
+                  style = "display: flex; align-items: left; justify-content: left;",
                   img(
                     src = image_src,
                     class = "img-fluid",
-                    style = "width: 50px; height: auto; margin-right: 15px;",
+                    style = "width: 30px; height: 30px; margin-right: 15px; margin-top: 15px",
                     alt = paste0(current_feature_display, " Image")
                   ),
                   h3(current_question_text)
                 ),
                 p(current_info_text),
-                radioButtons(
+                sliderInput(
                   inputId = feature_input_id,
                   label = NULL,
-                  choices = c("No", "Yes", "Very Much"),
-                  inline = TRUE
+                  min = 0,
+                  max = 3,
+                  value = 1
                 )
               )
             }),
             br(),
-            div(
-              style = "text-align: center;",
-              actionButton("back_feature", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("back_feature", "Back", class = "btn-custom"),
               actionButton("next_feature", "Next", class = "btn-custom")
-            )
-        )
-      )
+        ))
     } else if (current_q == 3) {
       # Preparation Page 2
       tagList(
@@ -470,7 +473,7 @@ server <- function(input, output, session) {
     current_question(4)
   })
   observeEvent(input$back_info_2, {
-    current_question(3 + length(features))  
+    current_question(1)  
   })
   
   # FEATURE QS
@@ -486,22 +489,13 @@ server <- function(input, output, session) {
         easyClose = TRUE,
         footer = NULL
       ))
-    } else {
-      if (current_q < (1 + length(features))) {
-        current_question(current_q + 1)
-      } else {
-        current_question(current_q +1)
-      }
-    }
+    } else 
+      current_question(3)
+    
   })
   
   observeEvent(input$back_feature, {
-    current_q <- current_question()
-    if (current_q > 2) {
-      current_question(current_q - 1)
-    } else if (current_q == 2) {
-      current_question(1)
-    }
+    current_question(1)
   })
   
   # Navigation logic after Neighborhood Selection
@@ -510,10 +504,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$back_neigh_sel, {
-    current_q <- current_question()
-    if (current_q > 3) {
-      current_question(current_q -1)
-    }
+    current_question(2)
   })
   
   # HH Size
@@ -533,7 +524,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$back_hhsize, {
-    current_question(4)
+    current_question(3)
   })
   
   # Annual income
@@ -555,7 +546,7 @@ server <- function(input, output, session) {
   
   # Back Button Logic for Second New Question
   observeEvent(input$back_income, {
-    current_question(5)  
+    current_question(4)  
   })
   
   # Restart
@@ -759,16 +750,8 @@ server <- function(input, output, session) {
   neighs_matched <- reactive({
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
-      response <- input[[paste0("importance_", gsub(" ", "_", feature_key))]]
-      if (response == "No") {
-        return(0)
-      } else if (response == "Yes") {
-        return(1)
-      } else if (response == "Very Much") {
-        return(2)
-      } else {
-        return(0)
-      }
+      response <- as.numeric(input[[paste0("importance_", gsub(" ", "_", feature_key))]])
+      return(response)
     }, simplify = TRUE)
     
     names(preference_weights) <- names(features)
@@ -843,7 +826,9 @@ server <- function(input, output, session) {
         opacity = 1,
         fillOpacity = 0.7,
         label = ~neighborhood,
-        popup = ~paste0("<strong>", neighborhood, "</strong><br/>2BR rent limit: $", cost_2br),
+        popup = ~paste0("<strong>", neighborhood, "</strong>
+                        <br/>
+                        Max rent: $", cost_2br),
         highlight = highlightOptions(
           weight = 2,
           color = "white",
