@@ -7,6 +7,7 @@ library(leaflet)
 library(bslib)        
 library(sf)
 library(tidyverse)
+library(DT)
 
 conflicts_prefer(shinyjs::show)
 
@@ -38,10 +39,11 @@ ui <- fluidPage(
     ),
     
     div(
-      style = "text-align: center; margin-top: -60px;", 
+      style = "text-align: center; align-items: center; margin-top: -60px;", 
       h1("Got a Housing Voucher?"),
       br(),
-      h4("Philadelphia is a big city made up of smaller areas and neighborhoods. It can be hard to know where to look for a home with a housing voucher. This tool is designed to help you narrow down your housing search and determine your rent limit in different neighborhoods."),
+      h4("Philadelphia is a big city made up of smaller areas and neighborhoods. It can be hard to know where to look for a home with a housing voucher."),
+      h4("This tool is designed to help you narrow down your housing search and determine your rent limit in different neighborhoods."),
       br(),
       actionButton("start_button", "Let's Go",  
                    class = "btn-custom")
@@ -58,7 +60,6 @@ ui <- fluidPage(
 hidden(
   div(
     id = "main_content",
-    # Remove sidebarLayout; use fluidRow for flexible layouts
     fluidRow(
       column(
         width = 12,
@@ -75,6 +76,8 @@ hidden(
 
 #### DATA ####
 nb <- st_read("panel.geojson") %>%
+  mutate(transit = 1,
+         schools = 1) %>%
   st_transform(nb, crs = 4326)
 
 
@@ -143,8 +146,10 @@ region_list <- list(
 # Neighborhood features
 features <- c(
   "shootings_100k" = "Safety",
+  "transit" = "Transit",
   "shopping" = "Shopping",
   "grocery" = "Grocery stores",
+  "schools" = "Schools",
   "parks" = "Parks",
   "healthcare" = "Healthcare",
   "same_house_pct2022" = "Longtime residents",
@@ -157,6 +162,10 @@ question_info_list <- list(
     question = "Safety",
     info = "A safe neighborhood has less crime and can help you feel more secure."
   ),
+  "transit" = list(
+    question = "Transit",
+    info = "Living near transit can make it easier to get around the city without a car."
+  ),
   "shopping" = list(
     question = "Commercial corridors",
     info = "Being close to shops means you can easily buy what you need, and the neighborhood might feel more lively."
@@ -164,6 +173,10 @@ question_info_list <- list(
   "grocery" = list(
     question = "Grocery stores",
     info = "Living near grocery stores makes it easier to buy fresh food and other essentials."
+  ),
+  "schools" = list(
+    question = "Schools",
+    info = "Living near schools can make it easier for kids to get to school and for parents to be involved in their education."
   ),
   "parks" = list(
     question = "Parks and green space",
@@ -198,7 +211,11 @@ renderProgressBar <- function(percent) {
 server <- function(input, output, session) {
   
   current_question <- reactiveVal(1)
-  total_steps <- 5
+  observe({
+    cat("Current question is:", current_question(), "\n")
+  })
+  
+  total_steps <- 6
   preferred_neighborhoods <- reactiveVal(c())
   household_size <- reactiveVal(NULL)
   annual_income <- reactiveVal(NULL)
@@ -255,13 +272,11 @@ server <- function(input, output, session) {
       tagList(
         renderProgressBar(progress_percent),
         div(class = "card",
-            div(
-              style = "text-align: center;",
-              h2("Welcome to Philly Neighborhood Explorer!"),
+              h2("Welcome to Philly Neighborhood Explorer."),
               br(),
-              p("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher."),
-              p("Let's get started by understanding what features are important to you.")
-            ),
+              p("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher. Let's get started by understanding what features are important to you."),
+              p("The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you on a scale of 0 to 3."),
+              p("After you've rated all the features, we'll show you neighborhoods that match your preferences."),
             br(),
             div(
               style = "text-align: center;",
@@ -333,6 +348,46 @@ server <- function(input, output, session) {
         )
       )
     } else if (current_q == 4) {
+      # Neighborhood Selection
+      tagList(
+        renderProgressBar(progress_percent),
+        div(class = "card",
+            div(
+              style = "text-align: center;",
+              h2("Select Your Preferred Neighborhoods"),
+              br(),
+              p("Choose the neighborhoods you'd prefer to live in. Select via the map or from the list below.")
+            ),
+            br(),
+            fluidRow(
+              column(6,
+                     div(class = "selection-buttons",
+                         actionButton("select_map", "Select via Map", class = "btn-selection", 
+                                      style = "width: 100%; margin-bottom: 10px; padding: 15px; font-size: 14px;"),
+                         actionButton("select_list", "Select via List", class = "btn-selection", 
+                                      style = "width: 100%; padding: 15px; font-size: 14px;")
+                     )
+              ),
+              column(6,
+                     # Display preferred neighborhoods
+                     h4("Currently Selected Neighborhoods:"),
+                     renderPreferredList(),
+                     br(),
+                     div(
+                       actionButton("clear_all", "Clear All", class = "btn-custom", 
+                                    style = "padding: 10px 20px; font-size: 14px;")
+                     )
+              )
+            ),
+            br(),
+            div(
+              style = "text-align: center;",
+              actionButton("back_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("next_neigh_sel", "Next", class = "btn-custom")
+            )
+        )
+      )
+    } else if (current_q == 5) {
       # Household size
       tagList(
         renderProgressBar(progress_percent),
@@ -361,7 +416,7 @@ server <- function(input, output, session) {
             )
         )
       )
-    } else if (current_q == 5) {
+    } else if (current_q == 6) {
       # Annual income
       tagList(
         renderProgressBar(progress_percent),
@@ -390,41 +445,49 @@ server <- function(input, output, session) {
             )
         )
       )
-    } else if (current_q == 6) {
+    } else if (current_q == 7) {
       # Results Page
       tagList(
         renderProgressBar(progress_percent),
         div(class = "card",
-            div(
-              style = "text-align: center;",
               h2("Your Neighborhood Matches"),
               br(),
-              p("Based on your preferences, here are some neighborhoods you might like:")
-            ),
+              p("Based on your preferences, here are some neighborhoods you might like:"),
+            uiOutput("neighborhood_details_table"),
             br(),
-            # Leaflet map output
+            p("Also consider these neighborhoods. These neighborhoods are a great match for your neighborhood preferences, but fall outside of your search area."),
+            uiOutput("neighborhood_recs_table"),
+            br(),
+            p("See your neighborhood matches on the map below. Click on a neighborhood to see more details."),
+            br(),
             leafletOutput("results_map", height = "600px"),
             div(
               class = "floating-card",
               h4("Your matches"),
               br(),
-              div(
-                h5("Neighborhoods for You"),
+              div(class = "match-neighs-text",
+                strong(style = "color: darkcyan;", "Neighborhoods for you")),
                 tags$ol(
                   lapply(1:5, function(i) {
                     if (i <= nrow(neighs_matched())) {
-                      tags$li(strong(neighs_matched()$neighborhood[i]))
+                      tags$li(h5(neighs_matched()$tract_neigh[i]))
                     } else {
                       tags$li("N/A")
                     }
                   })
-                )
-              ),
-              br(),
-              div(
-                h5("Your Expected Monthly Payment"),
-                p(textOutput("monthly_payment"))
-              ),
+                ),
+                div(class = "rec-neighs-text",
+                  strong(style = "color: darkslategray;", "Also consider")
+                ),
+                tags$ol(
+                  lapply(1:5, function(i) {
+                    if (i <= nrow(neighs_rec())) {
+                      tags$li(h5(neighs_rec()$tract_neigh[i]))
+                    } else {
+                      tags$li("N/A")
+                    }
+                  })
+                ),
               br(),
               actionButton("start_over", "Start Over", class = "btn-custom", style = "width: 100%;")
         )
@@ -433,6 +496,9 @@ server <- function(input, output, session) {
   })
   
     monthly_payment <- reactive({
+      
+    cat("Calculating monthly_payment\n")
+      
     income <- annual_income()
     household_size_val <- household_size()
     
@@ -473,7 +539,7 @@ server <- function(input, output, session) {
     current_question(4)
   })
   observeEvent(input$back_info_2, {
-    current_question(1)  
+    current_question(2)  
   })
   
   # FEATURE QS
@@ -500,11 +566,11 @@ server <- function(input, output, session) {
   
   # Navigation logic after Neighborhood Selection
   observeEvent(input$next_neigh_sel, {
-    current_question(4)
+    current_question(5)
   })
   
   observeEvent(input$back_neigh_sel, {
-    current_question(2)
+    current_question(3)
   })
   
   # HH Size
@@ -519,12 +585,12 @@ server <- function(input, output, session) {
     } else {
       # Store the input
       household_size(input$household_size)
-      current_question(5)
+      current_question(6)
     }
   })
   
   observeEvent(input$back_hhsize, {
-    current_question(3)
+    current_question(4)
   })
   
   # Annual income
@@ -540,13 +606,13 @@ server <- function(input, output, session) {
       # Store the input
       annual_income(input$annual_income)
       # Proceed to Results Page
-      current_question(6)
+      current_question(7)
     }
   })
   
   # Back Button Logic for Second New Question
   observeEvent(input$back_income, {
-    current_question(4)  
+    current_question(5)  
   })
   
   # Restart
@@ -747,7 +813,9 @@ server <- function(input, output, session) {
   })
   
   #### Results Page ####
+  ##### Matched neighborhoods ##### 
   neighs_matched <- reactive({
+    
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
       response <- as.numeric(input[[paste0("importance_", gsub(" ", "_", feature_key))]])
@@ -791,9 +859,62 @@ server <- function(input, output, session) {
     return(top_neighborhoods)
   })
   
+  
+  ##### Recommended neighborhoods ##### (just a placeholder for now)
+  neighs_rec <- reactive({
+    
+    # Collect user preferences and map to weights
+    preference_weights <- sapply(names(features), function(feature_key) {
+      response <- as.numeric(input[[paste0("importance_", gsub(" ", "_", feature_key))]])
+      return(response)
+    }, simplify = TRUE)
+    
+    names(preference_weights) <- names(features)
+    
+    preferred_neighborhoods_current <- preferred_neighborhoods()
+    
+    if (length(preferred_neighborhoods_current) > 0) {
+      recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
+    } else {
+      recommended_data <- nb
+    }
+    
+    # Ensure all necessary feature columns are present and numeric
+    missing_features <- setdiff(names(features), colnames(recommended_data))
+    if (length(missing_features) > 0) {
+      stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
+    }
+    recommended_data_no_geom <- st_drop_geometry(recommended_data)
+    feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
+    for (feature in names(features)) {
+      feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
+      feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
+    }
+    
+    # Calculate weighted scores
+    weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
+    recommended_data$score <- rowMeans(weighted_features)
+    
+    # Find top 5 neighborhood matches
+    recommended_data <- arrange(recommended_data, desc(score))
+    top_neighborhoods <- recommended_data[5:10, ]
+    top_neighborhoods_centroids <- st_centroid(top_neighborhoods)
+    top_neighborhoods_coords <- st_coordinates(top_neighborhoods_centroids)
+    top_neighborhoods$lon <- top_neighborhoods_coords[, 1]
+    top_neighborhoods$lat <- top_neighborhoods_coords[, 2]
+    
+    return(top_neighborhoods)
+  })
+  
   ##### Result Map ##### 
   output$results_map <- renderLeaflet({
-    req(current_question() == 6)
+    
+    pal <- colorFactor(
+      palette = c("darkcyan", "darkslategray"), 
+      domain = c("Matched", "Recommended")
+    )
+    
+    req(current_question() == 7)
     monthly_payment <- monthly_payment()
     
     # Initialize the Leaflet map
@@ -826,8 +947,8 @@ server <- function(input, output, session) {
         weight = 1,
         opacity = 1,
         fillOpacity = 0.7,
-        label = ~neighborhood,
-        popup = ~paste0("<strong>", neighborhood, "</strong>
+        label = ~tract_neigh,
+        popup = ~paste0("<strong>", tract_neigh, "</strong>
                         <br/>
                         Max rent: $", cost_2br,
                         "<br/>
@@ -839,13 +960,38 @@ server <- function(input, output, session) {
           color = "white",
           fillOpacity = 0.9,
           bringToFront = TRUE
-        )
+        ),
+        group = "matched"
+      ) %>%
+      addPolygons(
+        data = neighs_rec(),
+        fillColor = "darkslategray",
+        color = "white",
+        dashArray = "3",
+        weight = 1,
+        opacity = 1,
+        fillOpacity = 0.7,
+        label = ~tract_neigh,
+        popup = ~paste0("<strong>", tract_neigh, "</strong>
+                        <br/>
+                        Max rent: $", cost_2br,
+                        "<br/>
+                        You pay: $", monthly_payment,
+                        "<br/>
+                        HUD pays: $", as.numeric(cost_2br) - as.numeric(monthly_payment)),
+        highlight = highlightOptions(
+          weight = 2,
+          color = "white",
+          fillOpacity = 0.9,
+          bringToFront = TRUE
+        ),
+        group = "recommended"
       ) %>%
       addLabelOnlyMarkers(
-        data = neighs_matched(),
+        data = neighs_rec(),
         lng = ~lon,
         lat = ~lat,
-        label = ~neighborhood,
+        label = ~tract_neigh,
         labelOptions = labelOptions(
           noHide = TRUE,
           direction = "top",
@@ -858,35 +1004,108 @@ server <- function(input, output, session) {
             "border-radius" = "3px"
           )
         )
+      ) %>%
+      addLegend(
+        position = "bottomleft", 
+        pal = pal, 
+        values = c("Matched", "Recommended")
       )
     map
   })
   
-##### Results sidebar card ##### 
-output$recommended_neighborhoods_card <- renderUI({
-  req(current_question() == (6 + length(features))) 
-  matched_neigh <- neighs_matched()
-  
-  if (nrow(matched_neigh) == 0) {
-    return(
-      tags$div(
-        tags$h4("No matching neighborhoods found based on your preferences.")
+  #### Data table for Neighborhood Details ####
+  ##### Matched ##### 
+  output$neighborhood_details_table <- renderUI({
+    matched_neigh <- neighs_matched()
+    
+    monthly_payment_value <- monthly_payment() 
+    
+    # Prepare table data
+    details_table <- data.frame(
+      Neighborhood = matched_neigh$tract_neigh,
+      Max_Rent = paste0("$", formatC(matched_neigh$cost_2br)),
+      Your_Contribution = paste0("$", formatC(monthly_payment_value)),
+      HUD_Pays = paste0("$", formatC(as.numeric(matched_neigh$cost_2br) - monthly_payment_value))
+    )
+    
+    cat("Details Table:\n")
+    print(details_table)
+    
+    # Create HTML table
+    table_html <- paste(
+      "<table style='width:50%; border-collapse: collapse;'>",
+      "<thead><tr style='background-color: darkcyan; color: white;'>",
+      "<th>Neighborhood</th><th>Max Rent</th><th>You pay</th><th>HUD Pays</th>",
+      "</tr></thead>",
+      "<tbody>",
+      paste(
+        apply(details_table, 1, function(row) {
+          paste0("<tr style='border: 1px solid lightgray; padding: 8px;'>",
+                 "<td>", row[1], "</td>",
+                 "<td>", row[2], "</td>",
+                 "<td>", row[3], "</td>",
+                 "<td>", row[4], "</td>",
+                 "</tr>")
+        }),
+        collapse = ""
+      ),
+      "</tbody></table>"
+    )
+    
+    HTML(
+      paste0(
+        "<div style='max-height: 200px; overflow-y: auto;'>", table_html, "</div>"
       )
     )
-  }
+  })
   
-  # Render the list of matched neighborhoods
-  tags$div(
-    tags$h4("Recommended Neighborhoods:"),
-    tags$ol(
-      lapply(1:nrow(matched_neigh), function(i) {
-        tags$li(
-          tags$strong(matched_neigh$neighborhood[i])
-        )
-      })
+  ##### Recommended ##### 
+  output$neighborhood_recs_table <- renderUI({
+    rec_neigh <- neighs_rec()
+    
+    monthly_payment_value <- monthly_payment() 
+    
+    # Prepare table data
+    details_table <- data.frame(
+      Neighborhood = rec_neigh$tract_neigh,
+      Max_Rent = paste0("$", formatC(rec_neigh$cost_2br)),
+      Your_Contribution = paste0("$", formatC(monthly_payment_value)),
+      HUD_Pays = paste0("$", formatC(as.numeric(rec_neigh$cost_2br) - monthly_payment_value))
     )
-  )
-})
+    
+    cat("Details Table:\n")
+    print(details_table)
+    
+    # Create HTML table
+    table_html <- paste(
+      "<table style='width:50%; border-collapse: collapse;'>",
+      "<thead><tr style='background-color: darkcyan; color: white;'>",
+      "<th>Neighborhood</th><th>Max Rent</th><th>You pay</th><th>HUD Pays</th>",
+      "</tr></thead>",
+      "<tbody>",
+      paste(
+        apply(details_table, 1, function(row) {
+          paste0("<tr style='border: 1px solid lightgray; padding: 8px;'>",
+                 "<td>", row[1], "</td>",
+                 "<td>", row[2], "</td>",
+                 "<td>", row[3], "</td>",
+                 "<td>", row[4], "</td>",
+                 "</tr>")
+        }),
+        collapse = ""
+      ),
+      "</tbody></table>"
+    )
+    
+    HTML(
+      paste0(
+        "<div style='max-height: 200px; overflow-y: auto;'>", table_html, "</div>"
+      )
+    )
+  })
+
+  
+  
 }
 
 # Run the app
