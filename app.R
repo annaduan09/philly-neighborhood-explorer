@@ -1023,9 +1023,9 @@ server <- function(input, output, session) {
     # Prepare table data
     details_table <- data.frame(
       Neighborhood = matched_neigh$tract_neigh,
-      Max_Rent = paste0("$", formatC(matched_neigh$cost_2br)),
-      Your_Contribution = paste0("$", formatC(monthly_payment_value)),
-      HUD_Pays = paste0("$", formatC(as.numeric(matched_neigh$cost_2br) - monthly_payment_value))
+      Max_Rent = paste0("$", formatC(as.numeric(matched_neigh$cost_2br), big.mark = ",")),
+      HUD_Pays = paste0("$", formatC(as.numeric(matched_neigh$cost_2br) - monthly_payment_value, big.mark = ",")),
+      Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
     )
     
     cat("Details Table:\n")
@@ -1035,7 +1035,7 @@ server <- function(input, output, session) {
     table_html <- paste(
       "<table style='width:50%; border-collapse: collapse;'>",
       "<thead><tr style='background-color: darkcyan; color: white;'>",
-      "<th>Neighborhood</th><th>Max Rent</th><th>You pay</th><th>HUD Pays</th>",
+      "<th>Neighborhood</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
       "</tr></thead>",
       "<tbody>",
       paste(
@@ -1068,9 +1068,9 @@ server <- function(input, output, session) {
     # Prepare table data
     details_table <- data.frame(
       Neighborhood = rec_neigh$tract_neigh,
-      Max_Rent = paste0("$", formatC(rec_neigh$cost_2br)),
-      Your_Contribution = paste0("$", formatC(monthly_payment_value)),
-      HUD_Pays = paste0("$", formatC(as.numeric(rec_neigh$cost_2br) - monthly_payment_value))
+      Max_Rent = paste0("$", formatC(as.numeric(rec_neigh$cost_2br), big.mark = ",")),
+      HUD_Pays = paste0("$", formatC(as.numeric(rec_neigh$cost_2br) - monthly_payment_value, big.mark = ",")),
+      Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
     )
     
     cat("Details Table:\n")
@@ -1080,7 +1080,7 @@ server <- function(input, output, session) {
     table_html <- paste(
       "<table style='width:50%; border-collapse: collapse;'>",
       "<thead><tr style='background-color: darkcyan; color: white;'>",
-      "<th>Neighborhood</th><th>Max Rent</th><th>You pay</th><th>HUD Pays</th>",
+      "<th>Neighborhood</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
       "</tr></thead>",
       "<tbody>",
       paste(
