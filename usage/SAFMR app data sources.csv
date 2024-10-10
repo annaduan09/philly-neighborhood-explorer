@@ -1,0 +1,10 @@
+variable,source,last update,URL
+Violent crime incidents,PPD via OpenDataPhilly,2024,https://opendataphilly.org/datasets/crime-incidents/
+Bus stops/lines,SEPTA open data portal,2024,https://data-septa.opendata.arcgis.com/datasets/735ef16048414bc39f7cd6dc418e5502_0/explore?location=39.954950%2C-75.197229%2C15.74
+Shopping and restaurants,Yelp Fusion API,2024,https://docs.developer.yelp.com/docs/fusion-intro
+Grocery stores,Yelp Fusion API,2024,API access via R
+Schools,School District of Philadelphia via OpenDataPhilly,2024,https://opendataphilly.org/datasets/schools/
+Parks and Rec properties,PPR via OpenDataPhilly,2024,https://opendataphilly.org/datasets/ppr-properties/
+Hospitals,Philadelphia Department of Public Health via OpenDataPhilly,2024,https://opendataphilly.org/datasets/philadelphia-hospitals/
+Longtime residents,ACS5y via Census API,2023,API access via R
+Voucher households,PHA,2023,

@@ -12,31 +12,60 @@ conflict_prefer("select", "dplyr")
 conflict_prefer("filter", "dplyr")
 
 ##### Point - no aggregation #####
-landmarks <- st_read("data/point/landmarks.geojson") %>%
-  st_transform(crs = "EPSG:4326") %>%
-  group_by(PARENT_NAME) %>%
-  slice_head(n = 1) %>%
-  select(NAME) %>%
-  st_centroid() %>%
-  # Get lng and lat
-  mutate(lng = st_coordinates(geometry)[, 1],
-         lat = st_coordinates(geometry)[, 2])
+# landmarks <- st_read("data/point/landmarks.geojson") %>%
+#   st_transform(crs = "EPSG:4326") %>%
+#   group_by(PARENT_NAME) %>%
+#   slice_head(n = 1) %>%
+#   select(NAME) %>%
+#   st_centroid() %>%
+#   # Get lng and lat
+#   mutate(lng = st_coordinates(geometry)[, 1],
+#          lat = st_coordinates(geometry)[, 2])
+# 
+# # write_sf(landmarks, "data/landmarks.geojson")
 
-# write_sf(landmarks, "data/landmarks.geojson")
+##### Point - to aggregate #####  
+# bus <- st_read("data/point/septa_bus_2024.geojson") %>%
+#   select(route = LineAbbr) %>%
+#   st_crop(st_bbox(tract_bounds))
+# 
+# train <- st_read("data/point/septa_train_2024.geojson") %>%
+#   select(route = Route) %>%
+#   st_crop(st_bbox(tract_bounds))
+# 
+# transit <- bind_rows(bus, train) %>%
+#   st_intersection(tract_bounds) %>%
+#   st_drop_geometry() %>%
+#   group_by(tract) %>%
+#   unique() %>%
+#   summarise(transit_lines = n())
+# 
+# st_write(transit, "data/tract/transit_tract.geojson", driver = "GeoJSON")
+transit <- st_read("data/tract/transit_tract.geojson") %>% st_drop_geometry()
+
+##### Polygon #####  
+hs_catchment <- st_read("data/polygon/Catchments_HS_2023/Catchments_HS_2023.shp") %>%
+  st_transform(crs = "EPSG:4326") %>%
+  select(HS_Name) %>%
+  rename(hs_catchment = HS_Name)
+
+ms_catchment <- st_read("data/polygon/Catchments_MS_2023/Catchments_MS_2023.shp") %>%
+  st_transform(crs = "EPSG:4326") %>%
+  select(MS_Name) %>%
+  rename(ms_catchment = MS_Name)
+
+es_catchment <- st_read("data/polygon/Catchments_ES_2023/Catchments_ES_2023.shp") %>%
+  st_transform(crs = "EPSG:4326") %>%
+  select(ES_Name) %>%
+  rename(es_catchment = ES_Name)
 
 ##### Neighborhood level #####
 ### Geometry
-nb_bounds <- st_read("data/neighborhood/phl_neighs_2024.geojson") %>%
+nb_bounds <- st_read("phl_neighs_2024.geojson") %>%
   st_make_valid() %>%
   st_transform(crs = "EPSG:4326") %>%
   select(neighborhood = MAPNAME) 
 
-# ### Features
-# clusters <- st_read("data/neighborhood/clusters.geojson") %>%
-#   st_make_valid() %>%
-#   st_transform(crs = "EPSG:4326") %>%
-#   st_drop_geometry() %>%
-#   rename(neighborhood = nb_name)
 
 ### Final
 dat_nb <- nb_bounds 
@@ -75,30 +104,23 @@ vouchers <- st_read("data/tract/vouchers_tract_2023.csv") %>%
   summarise(vouchers = sum(count)) %>%
   select(tract = GEOID, vouchers) %>%
   filter(tract %in% tract_bounds$tract)
-
-violent <- c('100', '200', '300', '400', '800', '1700', '2000', '1500')
-crime <- st_read("https://phl.carto.com/api/v2/sql?filename=incidents_part1_part2&format=csv&q=SELECT%20*%20,%20ST_Y(the_geom)%20AS%20lat,%20ST_X(the_geom)%20AS%20lng%20FROM%20incidents_part1_part2%20WHERE%20dispatch_date_time%20%3E=%20%272023-01-01%27%20AND%20dispatch_date_time%20%3C%20%272024-01-01%27") %>%
-  sample_n(size = 2000) %>%
-  filter(!is.na(point_x) & ucr_genera %in% violent) %>%
-  st_as_sf() %>%
-  st_transform(crs = "EPSG:4326") %>%
-  select(geometry) %>%
-  st_intersection(tract_bounds) %>%
-  group_by(tract) %>%
-  summarise(crime_incidents = n())
-
-st_write(crime, "data/tract/crime_tract.geojson", driver = "GeoJSON")
-
-# shootings <- st_read("data/point/shootings.geojson") %>%
-#   st_transform(crs = "EPSG:4326") %>%
+# 
+# violent <- c('100', '200', '300', '400', '800', '1700', '2000', '1500')
+# crime <- read_csv("data/point/crime_2024.csv") %>%
+#   drop_na(lat, lng) %>%
+#   filter(!is.na(point_x) & ucr_general %in% violent) %>%
+#   st_as_sf(coords = c("lng", "lat"), crs = 4326) %>%
+#   st_crop(st_bbox(tract_bounds)) %>%
 #   select(geometry) %>%
 #   st_intersection(tract_bounds) %>%
 #   group_by(tract) %>%
-#   summarise(shootings = n()) %>%
-#   st_drop_geometry() 
-#   
-# st_write(shootings, "data/tract/shootings_tract.geojson", driver = "GeoJSON")
-# shootings <- st_read("data/tract/shootings_tract.geojson")
+#   summarise(crime_incidents = n()) %>%
+#   st_drop_geometry() %>%
+#   left_join(tract_bounds, by = "tract") %>%
+#   st_as_sf()
+# 
+# st_write(crime, "data/tract/crime_tract.geojson", driver = "GeoJSON")
+crime <- st_read("data/tract/crime_tract.geojson") %>% st_drop_geometry()
 
 ### Final
 dat_tract <- st_intersection(amenities, tract_bounds) %>%
@@ -106,7 +128,8 @@ dat_tract <- st_intersection(amenities, tract_bounds) %>%
   left_join(crime, by = "tract") %>%
   left_join(acs, by = "tract") %>%
   left_join(vouchers, by = "tract") %>%
-  left_join(tract_bounds, by = "tract") %>%
+  left_join(transit, by = "tract") %>%
+  right_join(tract_bounds, by = "tract") %>%
   st_as_sf() %>%
   rename(tract_neigh = nb_name)
   
@@ -132,10 +155,11 @@ to_scale <- c("entertainment", "kids", "nightlife", "restaurant", "beauty", "gro
               "same_house_pct2022", "same_county_move_pct2022", "dif_county_same_state_move_pct2022",
               "dif_state_move_pct2022", "abroad_move_pct2022", "owner_housing_condition_pct2022",   
               "renter_housing_condition_pct2022", "unemployed_pct2022", "race_ice2022",                      
-              "vouchers", "vcrime_100k")
+              "vouchers", "vcrime_100k", "transit_density")
 
 dat_scale <- dat_merge %>%
-  mutate(vcrime_100k = ifelse(crime_incidents != 0 & !is.na(crime_incidents) & !is.na(as.numeric(population2022)) & as.numeric(population2022) != 0, 10000*crime_incidents/as.numeric(population2022), 0),
+  mutate(transit_density = ifelse(!is.na(transit_lines), transit_lines, 0),
+         vcrime_100k = ifelse(crime_incidents != 0 & !is.na(crime_incidents) & !is.na(as.numeric(population2022)) & as.numeric(population2022) != 0, 10000*crime_incidents/as.numeric(population2022), 0),
          across(all_of(to_scale), ~ as.numeric(.))) %>%
   mutate(across(all_of(to_scale), ~ rescale(.x, to = c(0, 1)))) %>%
   mutate(across(c(poverty_pct2022, vacancy_pct2022, vcrime_100k), ~ 1 - .x)) #flip undesirable scores
@@ -143,7 +167,7 @@ dat_scale <- dat_merge %>%
 dat_final <- dat_scale %>%
   # replace NAs with 0
   mutate(across(all_of(to_scale), ~ replace_na(.x, 0))) %>%
-  erase_water()
+  st_make_valid()
   
 ##### Export #####
-write_sf(dat_final, "data/panel.geojson", driver = "geojson")
+st_write(dat_final, "panel.geojson", driver = "geojson")

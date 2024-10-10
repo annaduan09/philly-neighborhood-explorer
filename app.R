@@ -40,10 +40,10 @@ ui <- fluidPage(
     
     div(
       style = "text-align: center; align-items: center; margin-top: -60px;", 
-      h1("Got a Housing Voucher?"),
+      h1("Do you have a Housing Choice Voucher?"),
       br(),
-      h4("Philadelphia is a big city made up of smaller areas and neighborhoods. It can be hard to know where to look for a home with a housing voucher."),
-      h4("This tool is designed to help you narrow down your housing search and determine your rent limit in different neighborhoods."),
+      p("Philadelphia is a big city made up of smaller areas and neighborhoods. It can be hard to know where to look for a home with a housing voucher."),
+      p("This tool is designed to help you narrow down your housing search and determine your rent limit in different neighborhoods."),
       br(),
       actionButton("start_button", "Let's Go",  
                    class = "btn-custom")
@@ -51,7 +51,7 @@ ui <- fluidPage(
     br(),
     div(
       style = "text-align: center;",
-      p("This will take ~2 minutes")
+      h5("This will take ~2 minutes")
     ),
     br()
   ),
@@ -76,14 +76,20 @@ hidden(
 
 #### DATA ####
 nb <- st_read("panel.geojson") %>%
-  mutate(transit = 1,
-         schools = 1) %>%
-  st_transform(nb, crs = 4326)
+  mutate(schools = 1) %>%
+  # replace all numeric NAs with 0
+  mutate(across(where(is.numeric), ~replace_na(., 0))) %>%
+  st_as_sf() %>%
+  st_make_valid() %>%
+  st_transform(crs = "EPSG:4326")
 
 
 # Load the neighborhood boundaries
-neigh_bounds <- st_read("phl_neighs_2024.geojson")  %>%
-  st_transform(neigh_bounds, crs = 4326)
+neigh_bounds <- st_read("phl_neighs_2024.geojson")%>%
+  st_as_sf() %>%
+  st_transform(crs = "EPSG:4326") %>%
+  st_make_valid()
+
 neigh_bounds$neighborhood <- as.character(neigh_bounds$MAPNAME)
 
 # Neighborhood lists by region
@@ -145,8 +151,8 @@ region_list <- list(
 
 # Neighborhood features
 features <- c(
-  "shootings_100k" = "Safety",
-  "transit" = "Transit",
+  "vcrime_100k" = "Safety",
+  "transit_density" = "Transit",
   "shopping" = "Shopping",
   "grocery" = "Grocery stores",
   "schools" = "Schools",
@@ -158,11 +164,11 @@ features <- c(
 
 # List of questions
 question_info_list <- list(
-  "shootings_100k" = list(
+  "vcrime_100k" = list(
     question = "Safety",
     info = "A safe neighborhood has less crime and can help you feel more secure."
   ),
-  "transit" = list(
+  "transit_density" = list(
     question = "Transit",
     info = "Living near transit can make it easier to get around the city without a car."
   ),
@@ -313,7 +319,7 @@ server <- function(input, output, session) {
                   ),
                   h3(current_question_text)
                 ),
-                p(current_info_text),
+                h4(current_info_text),
                 sliderInput(
                   inputId = feature_input_id,
                   label = NULL,
@@ -334,7 +340,7 @@ server <- function(input, output, session) {
         div(class = "card",
             div(
               style = "text-align: center;",
-              h2("Almost There."),
+              h2("Almost There!"),
               br(),
               p("Next, you'll select the neighborhoods you're interested in living. You can choose them by name or interact with the map."),
               p("This will help us tailor the best recommendations for you.")
@@ -909,6 +915,8 @@ server <- function(input, output, session) {
   ##### Result Map ##### 
   output$results_map <- renderLeaflet({
     
+    print(neighs_matched()$geometry)
+    
     pal <- colorFactor(
       palette = c("darkcyan", "darkslategray"), 
       domain = c("Matched", "Recommended")
@@ -1028,7 +1036,7 @@ server <- function(input, output, session) {
       Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
     )
     
-    cat("Details Table:\n")
+    cat("Match Table:\n")
     print(details_table)
     
     # Create HTML table
@@ -1073,7 +1081,7 @@ server <- function(input, output, session) {
       Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
     )
     
-    cat("Details Table:\n")
+    cat("Rec Table:\n")
     print(details_table)
     
     # Create HTML table

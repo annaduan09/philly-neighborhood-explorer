@@ -23,8 +23,17 @@ body {
 h1, h2, h3 {
   color: darkcyan;
   font-weight: 600;
+  text-align: center;
 }
 
+/* Paragraph Styling */
+p {
+  text-align: center; /* Justify text for clean alignment */
+  line-height: 1.6;    /* Increase line height for better readability */
+  margin-bottom: 1em;  /* Add space after each paragraph */
+  font-family: 'Poppins', sans-serif; /* Use the Poppins font */
+  color: #333333; /* Set a dark gray color for better contrast */
+}
 
 /* Style the action buttons */
 .btn-custom {
@@ -80,16 +89,17 @@ h1, h2, h3 {
   margin-top: 50px;
 }
 
-/* Add a footer */
+/* Footer Styling */
 #footer {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background-color: #2C3E50;
-  color: white;
-  text-align: center;
-  padding: 10px;
-  font-size: 14px;
+  position: fixed;      /* Fix the footer at the bottom of the viewport */
+  left: 0;              /* Align to the left edge */
+  bottom: 0;            /* Align to the bottom */
+  width: 100%;          /* Span the full width */
+  background-color: darkcyan; /* Light background color */
+  text-align: center;   /* Center the text */
+  padding: 10px 0;      /* Vertical padding for spacing */
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
+  margin: 0;            /* Remove any default margins */
 }
 
 /* Style for progress bar */
