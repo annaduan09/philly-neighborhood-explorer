@@ -8,6 +8,7 @@ library(bslib)
 library(sf)
 library(tidyverse)
 library(DT)
+library(leaflet.extras)
 
 conflicts_prefer(shinyjs::show)
 
@@ -688,6 +689,7 @@ server <- function(input, output, session) {
         lat2 = 40.13799
       ) %>%
       addPolygons(
+        group = 'neighborhoods',
         layerId = ~neighborhood,
         fillColor = ~ifelse(neighborhood %in% c(preferred_neighborhoods(), selected_neighborhoods), "salmon", "darkcyan"),
         color = "white",
@@ -695,27 +697,44 @@ server <- function(input, output, session) {
         fillOpacity = 0.5,
         label = ~neighborhood,
         highlight = highlightOptions(weight = 2, color = "#666", fillOpacity = 0.7)
+      ) %>%
+      addDrawToolbar(
+        targetGroup = 'drawnPoly',
+        polylineOptions = FALSE,
+        polygonOptions = drawPolygonOptions(),
+        circleOptions = FALSE,
+        rectangleOptions = FALSE,
+        markerOptions = FALSE,
+        circleMarkerOptions = FALSE,
+        editOptions = editToolbarOptions()
       )
   })
   
-  # Observe clicks on the map polygons in 'neigh_bounds' for selection
-  observeEvent(input$philly_map_selection_shape_click, {
-    clicked_area <- input$philly_map_selection_shape_click$id
+  # new poly drawn
+  observeEvent(input$philly_map_selection_draw_new_feature, {
+    # Get the drawn feature
+    feature <- input$philly_map_selection_draw_new_feature
+    
+    # Extract coordinates and create an sf polygon
+    coords <- feature$geometry$coordinates[[1]]
+    coords_mat <- do.call(rbind, lapply(coords, function(x) c(x[[1]], x[[2]])))
+    drawn_polygon <- st_polygon(list(coords_mat))
+    drawn_sf <- st_sfc(drawn_polygon, crs = st_crs(neigh_bounds))
+    
+    # Find neighborhoods intersecting with the drawn polygon
+    intersecting_neighborhoods <- neigh_bounds[st_intersects(neigh_bounds, drawn_sf, sparse = FALSE), ]
+    
+    # Update selected areas
     current_selection <- selected_areas()
-    if (clicked_area %in% current_selection) {
-      # If area is already selected, remove it
-      current_selection <- setdiff(current_selection, clicked_area)
-    } else {
-      # Otherwise, add it
-      current_selection <- c(current_selection, clicked_area)
-    }
-    selected_areas(current_selection)
+    new_selection <- c(current_selection, intersecting_neighborhoods$neighborhood)
+    selected_areas(unique(new_selection))
     
     # Update the map to reflect the new selection
     leafletProxy("philly_map_selection") %>%
-      clearShapes() %>%
+      clearGroup('neighborhoods') %>%
       addPolygons(
         data = neigh_bounds,
+        group = 'neighborhoods',
         layerId = ~neighborhood,
         fillColor = ~ifelse(neighborhood %in% c(preferred_neighborhoods(), selected_areas()), "salmon", "darkcyan"),
         color = "white",
@@ -726,13 +745,16 @@ server <- function(input, output, session) {
       )
   })
   
+  
   # Observe the "Clear Selections" button in the map modal
   observeEvent(input$clear_map_selection, {
     selected_areas(c())
     leafletProxy("philly_map_selection") %>%
-      clearShapes() %>%
+      clearGroup('drawnPoly') %>%  # Clear the drawn shapes
+      clearGroup('neighborhoods') %>%
       addPolygons(
         data = neigh_bounds,
+        group = 'neighborhoods',
         layerId = ~neighborhood,
         fillColor = ~ifelse(neighborhood %in% preferred_neighborhoods(), "salmon", "darkcyan"),
         color = "white",
