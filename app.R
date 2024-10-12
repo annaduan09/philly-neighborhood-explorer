@@ -217,6 +217,13 @@ server <- function(input, output, session) {
   preferred_neighborhoods <- reactiveVal(character())
   household_size <- reactiveVal(NULL)
   annual_income <- reactiveVal(NULL)
+  
+  income_limits <- c(
+    "1" = 64250, "2" = 73400, "3" = 82600, "4" = 91750,
+    "5" = 99100, "6" = 106450, "7" = 113800, "8" = 121150
+  )
+  
+  
   matched_5_neighs <- reactiveVal(NULL)
   
   # ReactiveValues to prevent infinite loops
@@ -570,10 +577,26 @@ server <- function(input, output, session) {
         footer = NULL
       ))
     } else {
-      # Store the input
-      annual_income(input$annual_income)
-      # Proceed to Results Page
-      current_question(7)
+      household_size_val <- household_size()
+      annual_income_val <- input$annual_income
+      max_income <- income_limits[as.character(household_size_val)]
+      
+      # Check if income exceeds the limit for the household size
+      if (!is.null(max_income) && annual_income_val > max_income) {
+        showModal(modalDialog(
+          title = "Income Limit Exceeded",
+          paste0(
+            "Your annual income exceeds the maximum allowed income of $", 
+            formatC(max_income, format = "f", digits = 0, big.mark = ","), 
+            " for a household size of ", household_size_val, "."
+          ),
+          easyClose = TRUE,
+          footer = NULL
+        ))
+      } else {
+        annual_income(input$annual_income)
+        current_question(7)  # Proceed to the next step if income is valid
+      }
     }
   })
   
