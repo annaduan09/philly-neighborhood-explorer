@@ -1,3 +1,11 @@
+/* Ensure the html and body take up the full height */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+
 /* Set maximum width for number inputs */
 input[type="number"] {
   max-width: 80%;
@@ -28,33 +36,33 @@ h1, h2, h3 {
 
 /* Paragraph Styling */
 p {
-  text-align: center; /* Justify text for clean alignment */
+  text-align: center; /* Center text for clean alignment */
   line-height: 1.6;    /* Increase line height for better readability */
   margin-bottom: 1em;  /* Add space after each paragraph */
-  font-family: 'Poppins', sans-serif; /* Use the Poppins font */
   color: #333333; /* Set a dark gray color for better contrast */
 }
 
 /* Style the action buttons */
 .btn-custom {
-  background-color: #3498DB;
+  background-color: darkcyan;
   color: #FFFFFF;
   border: none;
   font-size: 16px;
   padding: 12px 24px;
-  margin-top: 20px;
-  border-radius: 25px;
+  margin: 5px;
+  border-radius: 5px;
+  cursor: pointer;
   transition: background-color 0.3s ease;
 }
 .btn-custom:hover {
-  background-color: darkcyan;
+  background-color: #006666;
+  color: white;
 }
 
 .action-buttons {
   display: flex;
   justify-content: space-between;
 }
-
 
 /* Style the selection buttons */
 .btn-selection {
@@ -78,6 +86,20 @@ p {
   color: darkslategray;
 }
 
+/* Main app container as a flex container */
+#app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensures it takes at least the full viewport height */
+}
+
+/* Main content area grows to fill available space */
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto; /* Allows scrolling if content exceeds viewport */
+}
+
 /* Style the main content area */
 #main_content {
   margin-top: 30px;
@@ -86,40 +108,80 @@ p {
 /* Style the welcome panel */
 #welcome_panel {
   text-align: center;
-  margin-top: 50px;
+  padding: 20px;
+  margin-top: 10px;
+}
+
+.welcome-panel > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Aligns content to the top */
+  align-items: center;         /* Centers content horizontally */
 }
 
 /* Footer Styling */
 #footer {
-  position: fixed;      /* Fix the footer at the bottom of the viewport */
-  left: 0;              /* Align to the left edge */
-  bottom: 0;            /* Align to the bottom */
-  width: 100%;          /* Span the full width */
+  text-align: center;
+  padding: 10px;
+  position: relative; /* Ensure this is not set to absolute or fixed */
+  clear: both;
   background-color: darkcyan; /* Light background color */
-  text-align: center;   /* Center the text */
-  padding: 10px 0;      /* Vertical padding for spacing */
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
-  margin: 0;            /* Remove any default margins */
+  color: white;
+}
+
+/* Footer p() styling */
+#footer p {
+  color: white;
 }
 
 /* Style for progress bar */
 .progress {
-  margin-bottom: 20px;
   height: 20px;
+  margin-bottom: 20px;
+  background-color: #e9ecef;
   border-radius: 10px;
   overflow: hidden;
 }
+
 .progress-bar {
-  background-color: #18BC9C;
+  background-color: darkcyan;
 }
 
-/* Style cards */
+.welcome-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcome-panel > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Aligns content to the top */
+  align-items: center;         /* Centers content horizontally */
+  padding-top: 0px;           /* Adjust this value to move content down */
+}
+
+.welcome-panel img {
+  max-height: 50vh;
+  width: auto;
+  padding: 0;
+  margin: 0;
+}
+
+/* Adjust the card styling */
 .card {
-  background-color: #FFFFFF;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
+  background-color: white;
+  border-radius: 6px;
+  padding: 20px;
+  text-align: left;
+  align-items: center;
+  margin: 20px auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .question-info-text {
@@ -131,7 +193,6 @@ p {
 .card img {
   max-width: 20%;
   height: auto;
-  border-radius: 10px;
 }
 
 /* Image Styling */
@@ -143,6 +204,33 @@ p {
 /* Indent neighborhoods */
 .neighborhood-checkbox {
   margin-left: 20px;
+}
+
+/* Styles for the region dropdown */
+.region-dropdown {
+  margin-bottom: 10px;
+}
+
+.region-summary {
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.region-summary:hover {
+  background-color: #f0f0f0;
+}
+
+.region-summary .dropdown-arrow {
+  margin-left: 10px;
+  transition: transform 0.3s;
+}
+
+.region-dropdown[open] .dropdown-arrow {
+  transform: rotate(90deg);
 }
 
 /* Style for excluded neighborhoods list */
@@ -183,22 +271,17 @@ p {
   margin-top: 20px;
 }
 
-/* Style for recommended neighborhoods list */
-.recommended-list {
-  background-color: #F8F9FA;
-  padding: 15px;
-  border-radius: 10px;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 15px;
+/* Preferred and Recommended Lists */
+.preferred-list, .recommended-list {
+  margin-top: 20px;
 }
-.recommended-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #E9ECEF;
-  color: #34495E;
-}
-.recommended-item:last-child {
-  border-bottom: none;
+
+.preferred-item, .recommended-item {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f8f9fa;
 }
 
 /* Enhance Leaflet map controls */
@@ -289,30 +372,29 @@ h1, h2, h3, h4 {
   transition-delay: 0;
 }
 
-/* Floating card that overlays the Leaflet map */
+/* Floating card adjustments */
 .floating-card {
-  bottom: 40%;
-  right: 5%;
-  position: fixed;
-  width: auto;
-  background-color: white;
-  padding: 0 10px 10px 10px;
-  cursor: move;
-  zoom: 0.9;
-  transition: opacity 500ms 1s;
-  border-radius: 8px;
-  transition: all 0.3s ease-in-out; /* Smooth transitions */
+  position: relative;
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 5px;
 }
 
-/* match-neighs-text class
-.match-neighs-text {
-  color: darkcyan;
-  font-weight: bold;
+.floating-card h4 {
+  margin-top: 0;
+}
+
+.match-neighs-text,
+.rec-neighs-text {
+  margin-top: 10px;
 }
 
 /* Ensure Leaflet container is relative to position the floating card correctly */
 .leaflet-container {
   position: relative;
+  border-radius: 8px;
 }
 
 /* Style the tab content within the floating card */
@@ -360,94 +442,34 @@ h1, h2, h3, h4 {
   margin-top: 10px;
 }
 
-
-// additions
-
-
-/* Welcome Panel Styling */
-#welcome_panel {
-  text-align: center;
-  padding: 20px;
-  margin-top: 30px;
+/* Adjustments for the images in the feature questions */
+.img-fluid {
+  max-width: 100%;
+  height: auto;
 }
 
-#welcome_panel h1 {
-  font-size: 36px;
-  font-weight: 600;
-  color: #343a40;
+/* Adjustments for tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-#welcome_panel h4 {
-  font-size: 18px;
-  color: #495057;
+table th,
+table td {
+  padding: 4px;
+  text-align: left;
 }
 
-#welcome_panel p {
-  color: #6c757d;
-  font-size: 16px;
-}
-
-/* Buttons */
-.btn-custom {
+table th {
   background-color: darkcyan;
   color: white;
-  border: none;
-  text-align: center;
-  margin-right: 10px;
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
 }
 
-.btn-custom:hover {
-  background-color: cyan;
+table tr:nth-child(even) {
+  background-color: #f2f2f2;
 }
 
-/* Cards */
-.card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: left;
-  align-items: center;
-  margin: 20px;
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Progress Bar */
-.progress {
-  height: 20px;
-  background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-
-.progress-bar {
-  background-color: darkcyan;
-  height: 100%;
-}
-
-
-
-/* Preferred and Recommended Lists */
-.preferred-list, .recommended-list {
-  margin-top: 20px;
-}
-
-.preferred-item, .recommended-item {
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  background-color: #f8f9fa;
-}
-
-
-
-/* Map Selection Modal */
-.leaflet-container {
-  border-radius: 8px;
+/* Input number max width */
+input[type="number"] {
+  max-width: 80%;
 }
