@@ -282,7 +282,7 @@ server <- function(input, output, session) {
             h2("Welcome to Philly Neighborhood Explorer."),
             br(),
             h4("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher. Let's get started by understanding what features are important to you."),
-            h4("The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you on a scale of 0 to 3."),
+            h4("The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you."),
             h4("After you've rated all the features, we'll show you neighborhoods that match your preferences."),
             br(),
             div(
