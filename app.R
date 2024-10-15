@@ -9,6 +9,7 @@ library(sf)
 library(tidyverse)
 library(DT)
 library(leaflet.extras)
+library(shinyWidgets)
 
 conflicts_prefer(shinyjs::show)
 
@@ -299,7 +300,7 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         # Render each feature question in a separate div
         div(class = "card",
-            h2("On a scale of 0 to 3, how important is it to have the following where you live?"),
+            h2("How important is it to have the following where you live?"),
             br(),
             lapply(names(features), function(feature_key) {
               current_feature_display <- features[[feature_key]]
@@ -321,12 +322,12 @@ server <- function(input, output, session) {
                   h3(current_question_text)
                 ),
                 h4(current_info_text),
-                sliderInput(
+                sliderTextInput(
                   inputId = feature_input_id,
                   label = NULL,
-                  min = 0,
-                  max = 3,
-                  value = 1
+                  choices = c("Less", "Somewhat", "More", "Most"),  # Labels
+                  grid = TRUE,
+                  selected = "Somewhat"  # Default selection
                 )
               )
             }),
@@ -517,11 +518,23 @@ server <- function(input, output, session) {
   })
   
   # FEATURE QS
+  label_to_value <- c("Less" = 0, "Somewhat" = 1, "More" = 2, "Most" = 3)
+  
   observeEvent(input$next_feature, {
     current_q <- current_question()
     feature_index <- current_q -1
     feature_keys <- names(features)
     current_feature_key <- feature_keys[feature_index]
+    
+    
+    # Get the selected label from the input
+    selected_label <- input[[paste0("importance_", gsub(" ", "_", current_feature_key))]]
+    
+    # Convert the label to the corresponding numeric value
+    selected_value <- label_to_value[selected_label]
+    
+    # Now `selected_value` contains the numeric value (0, 1, 2, or 3)
+    cat("Selected value for", current_feature_key, "is", selected_value, "\n")
     
     if (is.null(input[[paste0("importance_", gsub(" ", "_", current_feature_key))]])) {
       showModal(modalDialog(
