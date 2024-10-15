@@ -404,9 +404,9 @@ server <- function(input, output, session) {
             numericInput(
               inputId = "household_size",
               label = NULL,
-              value = 1,
+              value = 3,
               min = 1,
-              max = 9,
+              max = 8,
               step = 1
             ),
             br(),
