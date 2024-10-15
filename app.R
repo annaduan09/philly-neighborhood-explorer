@@ -101,7 +101,8 @@ northwest_neighborhoods <- c("West Oak Lane", "East Oak Lane", "Chestnut Hill",
                              "Cedarbrook", "East Falls", "Wissahickon", "Germany Hill",
                              "East Park", "Dearnley Park", "Upper Roxborough", "West Central Germantown",
                              "Germantown - Westside", "Germantown - Penn Knox", "Wister",
-                             "Germantown - Morton", "Wissahickon Park")
+                             "Germantown - Morton", "Wissahickon Park", "Roxborough Park", 
+                             "Wissahickon Hills", "Blue Bell Hill", "West Park")
 
 northeast_neighborhoods <- c("Mayfair", "Tacony", "Holmesburg", "Fox Chase",
                              "Bustleton", "Somerton", "Oxford Circle", "Rhawnhurst",
@@ -110,7 +111,9 @@ northeast_neighborhoods <- c("Mayfair", "Tacony", "Holmesburg", "Fox Chase",
                              "Millbrook", "Wissinoming", "Franklin Mills", "Parkwood Manor", "Byberry",
                              "Burholme", "Lexington Park", "Pennypack", "Academy Gardens", "Morrell Park",
                              "Pennypack Woods", "Aston-Woodbridge", "Torresdale", "Northeast Phila Airport",
-                             "Normandy Village", "Harrowgate", "Richmond", "Frankford")
+                             "Normandy Village", "Harrowgate", "Richmond", "Frankford", "Pennypack Park",
+                             "Winchester Park", "West Torresdale", "Crestmont Farms", "Port Richmond",
+                             "Summerdale", "Mechanicsville")
 
 west_neighborhoods <- c("University City", "Wynnefield", "Overbrook", "Carroll Park", 
                         "Cobbs Creek", "Walnut Hill", "Spruce Hill", "Southwest Schuylkill",
@@ -367,6 +370,7 @@ server <- function(input, output, session) {
               h4("Choose the neighborhoods you'd prefer to live in. Select via the map or the list below."),
               br(),
               # Add a "Clear All Selections" button
+              actionButton("select_all", "Select All", class = "btn-custom", style = "margin-right: 10px;"),
               actionButton("clear_all", "Clear All Selections", class = "btn-custom")
             ),
             br(),
@@ -629,14 +633,44 @@ server <- function(input, output, session) {
   })
   
   #### Neighborhood Selection ####
+  # Select All functionality for the entire city
+  observeEvent(input$select_all, {
+    all_neighborhoods <- unlist(region_list)  # Get all neighborhoods from all regions
+    preferred_neighborhoods(all_neighborhoods)  # Update the preferred neighborhoods to select all
+    
+    # Update each region's checkbox group input
+    lapply(names(region_list), function(region_name) {
+      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
+      updateCheckboxGroupInput(session, neighborhood_input_id,
+                               selected = region_list[[region_name]])
+    })
+    
+    # Update the "Select All" checkboxes for each region
+    lapply(names(region_list), function(region_name) {
+      region_id <- paste0("region_", gsub(" ", "_", region_name))
+      updateCheckboxInput(session, region_id, value = TRUE)
+    })
+    
+    showNotification("All neighborhoods have been selected.", type = "message")
+  })
   
   # Clear All Selections
   observeEvent(input$clear_all, {
-    preferred_neighborhoods(character())
+    preferred_neighborhoods(character())  # Clear all preferred neighborhoods
+    
+    # Clear checkboxes for each region
+    lapply(names(region_list), function(region_name) {
+      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
+      updateCheckboxGroupInput(session, neighborhood_input_id, selected = character(0))  # Clear all checkboxes
+    })
+    
+    # Reset the "Select All" checkboxes for each region
+    lapply(names(region_list), function(region_name) {
+      region_id <- paste0("region_", gsub(" ", "_", region_name))
+      updateCheckboxInput(session, region_id, value = FALSE)
+    })
+    
     showNotification("All selected neighborhoods have been cleared.", type = "message")
-    # Also clear the drawn polygons from the map
-    leafletProxy("philly_map_selection") %>%
-      clearGroup('drawnPoly')
   })
   
   # Render the Leaflet map with drawing tools
@@ -713,13 +747,14 @@ server <- function(input, output, session) {
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       selected_neighborhoods <- intersect(region_list[[region_name]], preferred_neighborhoods())
       all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
+      
       tags$details(
         class = "region-dropdown",
         tags$summary(
           class = "region-summary",
           HTML(paste0("<span>", region_name, "</span><span class='dropdown-arrow'>▶</span>"))
         ),
-        checkboxInput(region_id, label = "Select all", value = all_selected),
+        checkboxInput(region_id, label = "Select all", value = all_selected), # "Select all" checkbox
         div(
           class = "neighborhood-checkbox",
           checkboxGroupInput(
@@ -741,13 +776,16 @@ server <- function(input, output, session) {
     observeEvent(input[[region_id]], {
       if (update_in_progress$neighborhood) return()
       update_in_progress$region <- TRUE
+      
+      # If "Select all" is checked, select all neighborhoods in the region; otherwise, deselect all
       selected <- if (isTRUE(input[[region_id]])) region_list[[region_name]] else character(0)
-      updateCheckboxGroupInput(session, neighborhood_input_id,
-                               selected = selected)
+      
+      # Update the neighborhood checkboxes
+      updateCheckboxGroupInput(session, neighborhood_input_id, selected = selected)
       update_in_progress$region <- FALSE
     }, ignoreInit = TRUE)
   })
-  
+
   # Update region checkboxes when neighborhood selections change
   lapply(names(region_list), function(region_name) {
     neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
@@ -756,18 +794,27 @@ server <- function(input, output, session) {
     observeEvent(input[[neighborhood_input_id]], {
       if (update_in_progress$region) return()
       update_in_progress$neighborhood <- TRUE
+      
+      # Get selected neighborhoods
       selected_neighborhoods <- input[[neighborhood_input_id]]
+      
+      # Check if all neighborhoods in the region are selected
       all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
+      
+      # Update the "Select all" checkbox based on whether all neighborhoods are selected
       updateCheckboxInput(session, region_id, value = all_selected)
-      # Update preferred_neighborhoods
+      
+      # Update preferred neighborhoods
       neighborhoods <- unlist(lapply(names(region_list), function(r_name) {
         n_input_id <- paste0("neighborhoods_", gsub(" ", "_", r_name))
         input[[n_input_id]]
       }))
+      
       preferred_neighborhoods(unique(neighborhoods))
       update_in_progress$neighborhood <- FALSE
     }, ignoreInit = TRUE)
   })
+  
   
   # Synchronize list selections with preferences
   observeEvent(preferred_neighborhoods(), {
