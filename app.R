@@ -45,7 +45,7 @@ ui <- fluidPage(
       br(),
       div(
         style = "text-align: center;",
-        h5("This will take ~2 minutes")
+        h5("This will take about 5 minutes.")
       ),
       br()
     ),
@@ -62,19 +62,19 @@ ui <- fluidPage(
     # Footer
     div(
       id = "footer",
-      p("© 2024 Philadelphia Neighborhood Explorer")
+      p("2024 Philadelphia Neighborhood Explorer")
     )
   )
 )
 
 #### DATA ####
-nb <- st_read("panel.geojson") %>%
-  mutate(schools = 1) %>%
+nb <- st_read("panel_2024.geojson") %>%
   # replace all numeric NAs with 0
   mutate(across(where(is.numeric), ~replace_na(., 0))) %>%
   st_as_sf() %>%
   st_make_valid() %>%
-  st_transform(crs = "EPSG:4326")
+  st_transform(crs = "EPSG:4326") %>%
+  mutate(across(starts_with("cost"), as.numeric))
 
 
 # Load the neighborhood boundaries
@@ -147,11 +147,11 @@ region_list <- list(
 
 # Neighborhood features
 features <- c(
-  "vcrime_100k" = "Safety",
+  "safety" = "Safety",
   "transit_density" = "Transit",
+  "downtown_prox" = "Close to downtown",
   "shopping" = "Shopping",
   "grocery" = "Grocery stores",
-  "schools" = "Schools",
   "parks" = "Parks",
   "healthcare" = "Healthcare",
   "same_house_pct2022" = "Longtime residents",
@@ -160,13 +160,17 @@ features <- c(
 
 # List of questions
 question_info_list <- list(
-  "vcrime_100k" = list(
+  "safety" = list(
     question = "Safety",
     info = "A safe neighborhood has less crime and can help you feel more secure."
   ),
   "transit_density" = list(
     question = "Transit",
     info = "Living near transit can make it easier to get around the city without a car."
+  ),
+  "downtown_prox" = list(
+    question = "Close to downtown",
+    info = "Living close to downtown can make it easier to get to work, school, or other places you need to go."
   ),
   "shopping" = list(
     question = "Commercial corridors",
@@ -175,10 +179,6 @@ question_info_list <- list(
   "grocery" = list(
     question = "Grocery stores",
     info = "Living near grocery stores makes it easier to buy fresh food and other essentials."
-  ),
-  "schools" = list(
-    question = "Schools",
-    info = "Living near schools can make it easier for kids to get to school and for parents to be involved in their education."
   ),
   "parks" = list(
     question = "Parks and green space",
@@ -193,8 +193,8 @@ question_info_list <- list(
     info = "Neighborhoods where people have lived a long time often have a strong sense of community where neighbors know each other well."
   ),
   "vouchers" = list(
-    question = "Voucher holder households",
-    info = "In neighborhoods with more voucher holders, it might be easier to find landlords who accept vouchers."
+    question = "Voucher user households",
+    info = "These neighborhoods have more households that use a voucher."
   )
 )
 
@@ -347,7 +347,7 @@ server <- function(input, output, session) {
               style = "text-align: center;",
               h2("Almost There!"),
               br(),
-              h4("Next, you'll select the neighborhoods you're interested in living. You can choose them by name or interact with the map."),
+              h4("Next, you'll select the neighborhoods you're interested in living. You can choose them by name using the list to the right or draw a shape around the neighborhoods you'd like to consider using the map."),
               h4("This will help us tailor the best recommendations for you.")
             ),
             br(),
@@ -476,14 +476,12 @@ server <- function(input, output, session) {
   
   monthly_payment <- reactive({
     
-    cat("Calculating monthly_payment\n")
-    
     income <- annual_income()
     household_size_val <- household_size()
     
     # Check if inputs are available
-    if (is.null(income) || is.null(household_size_val)) {
-      return(NA)
+    if (is.null(income) || is.null(household_size_val) || is.na(income) || is.na(household_size_val)) {
+      return(0)  
     }
     
     # Calculate contribution based on the provided logic
@@ -635,8 +633,8 @@ server <- function(input, output, session) {
   #### Neighborhood Selection ####
   # Select All functionality for the entire city
   observeEvent(input$select_all, {
-    all_neighborhoods <- unlist(region_list)  # Get all neighborhoods from all regions
-    preferred_neighborhoods(all_neighborhoods)  # Update the preferred neighborhoods to select all
+    all_neighborhoods <- unlist(region_list)  
+    preferred_neighborhoods(all_neighborhoods) 
     
     # Update each region's checkbox group input
     lapply(names(region_list), function(region_name) {
@@ -691,7 +689,7 @@ server <- function(input, output, session) {
       addPolygons(
         group = 'neighborhoods',
         layerId = ~neighborhood,
-        fillColor = ~ifelse(neighborhood %in% preferred_neighborhoods(), "salmon", "darkcyan"),
+        fillColor = ~ifelse(neighborhood %in% preferred_neighborhoods(), "cyan3", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
@@ -731,7 +729,7 @@ server <- function(input, output, session) {
         data = neigh_bounds,
         group = 'neighborhoods',
         layerId = ~neighborhood,
-        fillColor = ~ifelse(neighborhood %in% preferred_neighborhoods(), "salmon", "darkcyan"),
+        fillColor = ~ifelse(neighborhood %in% preferred_neighborhoods(), "cyan3", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
@@ -888,11 +886,18 @@ server <- function(input, output, session) {
     names(preference_weights) <- names(features)
     
     preferred_neighborhoods_current <- preferred_neighborhoods()
+    all_neighborhoods <- unique(nb$neighborhood)
+    matched_neighborhoods <- neighs_matched()$neighborhood
+
     
-    if (length(preferred_neighborhoods_current) > 0) {
-      recommended_data <- nb[!nb$neighborhood %in% preferred_neighborhoods_current, ]
+    if (length(preferred_neighborhoods_current) == 0 || 
+        length(preferred_neighborhoods_current) == 159) {
+      # All neighborhoods are selected or none are selected
+      # Exclude the top matched neighborhoods from recommendations
+      recommended_data <- nb[!nb$neighborhood %in% matched_neighborhoods, ]
     } else {
-      recommended_data <- nb
+      # User selected specific neighborhoods
+      recommended_data <- nb[!nb$neighborhood %in% preferred_neighborhoods_current, ]
     }
     
     # Ensure all necessary feature columns are present and numeric
@@ -1053,19 +1058,29 @@ server <- function(input, output, session) {
   ##### Matched ##### 
   output$neighborhood_details_table <- renderUI({
     matched_neigh <- neighs_matched()
+    hh_size <- household_size()
+    
+    # determine max rent in neighborhood to be based on household size
+    max_rent = case_when(
+      hh_size == 1 ~ matched_neigh$cost_1br,
+      hh_size == 2 ~ matched_neigh$cost_2br,
+      hh_size == 3 ~ matched_neigh$cost_3br,
+      hh_size == 4 ~ matched_neigh$cost_4br,
+      hh_size == 5 ~ matched_neigh$cost_5br,
+      hh_size == 6 ~ matched_neigh$cost_6br,
+      hh_size == 7 ~ matched_neigh$cost_7br,
+      hh_size == 8 ~ matched_neigh$cost_8br
+    )
     
     monthly_payment_value <- monthly_payment() 
     
     # Prepare table data
     details_table <- data.frame(
       Neighborhood = matched_neigh$tract_neigh,
-      Max_Rent = paste0("$", formatC(as.numeric(matched_neigh$cost_2br), big.mark = ",")),
-      HUD_Pays = paste0("$", formatC(as.numeric(matched_neigh$cost_2br) - monthly_payment_value, big.mark = ",")),
+      Max_Rent = paste0("$", formatC(max_rent, big.mark = ",")),
+      HUD_Pays = paste0("$", formatC(max_rent - monthly_payment_value, big.mark = ",")),
       Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
     )
-    
-    cat("Match Table:\n")
-    print(details_table)
     
     # Create HTML table
     table_html <- paste(
@@ -1098,19 +1113,33 @@ server <- function(input, output, session) {
   ##### Recommended ##### 
   output$neighborhood_recs_table <- renderUI({
     rec_neigh <- neighs_rec()
+    hh_size <- household_size()
+    
+    if (nrow(rec_neigh) == 0) {
+      return(p("No additional recommendations available."))
+    }
+    
+    # determine max rent in neighborhood to be based on household size
+    max_rent = case_when(
+      hh_size == 1 ~ rec_neigh$cost_1br,
+      hh_size == 2 ~ rec_neigh$cost_2br,
+      hh_size == 3 ~ rec_neigh$cost_3br,
+      hh_size == 4 ~ rec_neigh$cost_4br,
+      hh_size == 5 ~ rec_neigh$cost_5br,
+      hh_size == 6 ~ rec_neigh$cost_6br,
+      hh_size == 7 ~ rec_neigh$cost_7br,
+      hh_size == 8 ~ rec_neigh$cost_8br
+    )
     
     monthly_payment_value <- monthly_payment() 
     
     # Prepare table data
     details_table <- data.frame(
       Neighborhood = rec_neigh$tract_neigh,
-      Max_Rent = paste0("$", formatC(as.numeric(rec_neigh$cost_2br), big.mark = ",")),
-      HUD_Pays = paste0("$", formatC(as.numeric(rec_neigh$cost_2br) - monthly_payment_value, big.mark = ",")),
+      Max_Rent = paste0("$", formatC(max_rent, big.mark = ",")),
+      HUD_Pays = paste0("$", formatC(max_rent - monthly_payment_value, big.mark = ",")),
       Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
     )
-    
-    cat("Rec Table:\n")
-    print(details_table)
     
     # Create HTML table
     table_html <- paste(
