@@ -1,5 +1,6 @@
 # Load required libraries
 library(shiny)
+library(rsconnect)
 library(shinyjs)
 library(conflicted)  
 library(shinythemes)  
@@ -149,7 +150,7 @@ region_list <- list(
 features <- c(
   "safety" = "Safety",
   "transit_density" = "Transit",
-  "downtown_prox" = "Close to downtown",
+  "downtown_prox" = "Close to Center City",
   "shopping" = "Shopping",
   "grocery" = "Grocery stores",
   "parks" = "Parks",
@@ -169,8 +170,8 @@ question_info_list <- list(
     info = "Living near transit can make it easier to get around the city without a car."
   ),
   "downtown_prox" = list(
-    question = "Close to downtown",
-    info = "Living close to downtown can make it easier to get to work, school, or other places you need to go."
+    question = "Close to Center City",
+    info = "Living close to Center City can make it easier to get to work, school, or other places you need to go."
   ),
   "shopping" = list(
     question = "Commercial corridors",
@@ -971,13 +972,21 @@ server <- function(input, output, session) {
         opacity = 1,
         fillOpacity = 0.7,
         label = ~tract_neigh,
-        popup = ~paste0("<strong>", tract_neigh, "</strong>
+        popup = ~paste0("<h2>", tract_neigh, "</h2>
                         <br/>
-                        Max rent: $", cost_2br,
+                        <strong>Max rent:</strong> $", cost_2br,
                         "<br/>
-                        You pay: $", monthly_payment,
+                        <strong>You pay:</strong> $", monthly_payment,
                         "<br/>
-                        HUD pays: $", as.numeric(cost_2br) - as.numeric(monthly_payment)),
+                        <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
+                        "<br/>
+                        <strong>Elementary School:</strong> ", es_catchment,
+                        "<br/>
+                        <strong>Middle School:</strong> ", ms_catchment,
+                        "<br/>
+                        <strong>High School:</strong> ", hs_catchment,
+                        "<br/>
+                        <strong>Transit Lines:</strong> ", transit_line_names),
         highlight = highlightOptions(
           weight = 2,
           color = "white",
@@ -995,13 +1004,21 @@ server <- function(input, output, session) {
         opacity = 1,
         fillOpacity = 0.7,
         label = ~tract_neigh,
-        popup = ~paste0("<strong>", tract_neigh, "</strong>
+        popup = ~paste0("<h2>", tract_neigh, "</h2>
                         <br/>
-                        Max rent: $", cost_2br,
+                        <strong>Max rent:</strong> $", cost_2br,
                         "<br/>
-                        You pay: $", monthly_payment,
+                        <strong>You pay:</strong> $", monthly_payment,
                         "<br/>
-                        HUD pays: $", as.numeric(cost_2br) - as.numeric(monthly_payment)),
+                        <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
+                        "<br/>
+                        <strong>Elementary School:</strong> ", es_catchment,
+                        "<br/>
+                        <strong>Middle School:</strong> ", ms_catchment,
+                        "<br/>
+                        <strong>High School:</strong> ", hs_catchment,
+                        "<br/>
+                        <strong>Transit Lines:</strong> ", transit_line_names),
         highlight = highlightOptions(
           weight = 2,
           color = "white",
