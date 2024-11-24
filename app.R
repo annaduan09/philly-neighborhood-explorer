@@ -57,12 +57,6 @@ ui <- fluidPage(
         class = "main-content",
         uiOutput("question_ui") 
       )
-    ),
-    
-    # Footer
-    div(
-      id = "footer",
-      p("2024 Philadelphia Neighborhood Explorer")
     )
   )
 )
@@ -282,25 +276,25 @@ server <- function(input, output, session) {
     if (current_q == 1) {
       tagList(
         renderProgressBar(progress_percent),
-        div(class = "card",
+        #div(class = "card",
             h2("Welcome to Philly Neighborhood Explorer."),
             br(),
             h4("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher. Let's get started by understanding what features are important to you."),
             h4("The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you."),
             h4("After you've rated all the features, we'll show you neighborhoods that match your preferences."),
             br(),
-            div(
+            #div(
               actionButton("next_info_1", "Let's Go",  
-                           class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
-            )
-        )
+                           class = "btn-custom")
+            #)
+       # )
       )
     } else if (current_q == 2) {
       
       tagList(
         renderProgressBar(progress_percent),
         
-        div(class = "card",
+        #div(class = "card",
             h2("How important is it to have the following where you live?"),
             br(),
             lapply(names(features), function(feature_key) {
@@ -330,39 +324,40 @@ server <- function(input, output, session) {
             br(),
             actionButton("back_feature", "Back", class = "btn-custom"),
             actionButton("next_feature", "Next", class = "btn-custom")
-        ))
+      #  )
+        )
     } else if (current_q == 3) {
       # Preparation Page 2
       tagList(
         renderProgressBar(progress_percent),
-        div(class = "card",
-            div(
+       # div(class = "card",
+       #     div(
               h2("Almost There!"),
               br(),
               h4("Next, you'll select the neighborhoods you're interested in living. You can choose them by name using the list to the right or draw a shape around the neighborhoods you'd like to consider using the map."),
-              h4("This will help us tailor the best recommendations for you.")
-            ),
+              h4("This will help us tailor the best recommendations for you."),
+        #    ),
             br(),
             div(
               actionButton("next_info_2", "Let's Go",  
                            class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
-        )
+       # )
       )
     } else if (current_q == 4) {
       # Neighborhood Selection
       tagList(
         renderProgressBar(progress_percent),
-        div(class = "card",
-            div(
+       # div(class = "card",
+          #  div(
               h2("Select Your Preferred Neighborhoods"),
               br(),
               h4("Choose the neighborhoods you'd prefer to live in. Select via the map or the list below."),
               br(),
               # Add a "Clear All Selections" button
               actionButton("select_all", "Select All", class = "btn-custom", style = "margin-right: 10px;"),
-              actionButton("clear_all", "Clear All Selections", class = "btn-custom")
-            ),
+              actionButton("clear_all", "Clear All Selections", class = "btn-custom"),
+         #   ),
             br(),
             fluidRow(
               column(6,
@@ -379,19 +374,19 @@ server <- function(input, output, session) {
               actionButton("back_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
               actionButton("next_neigh_sel", "Next", class = "btn-custom")
             )
-        )
+        #)
       )
     } else if (current_q == 5) {
       # Household size
       tagList(
         renderProgressBar(progress_percent),
-        div(class = "card",
-            div(
+       # div(class = "card",
+      #      div(
               h2("Household Size"),
               br(),
               p("How many people will be living in this unit?"),
-              p("This helps determine how much rent your voucher will cover.")
-            ),
+              p("This helps determine how much rent your voucher will cover."),
+         #   ),
             br(),
             numericInput(
               inputId = "household_size",
@@ -402,23 +397,23 @@ server <- function(input, output, session) {
               step = 1
             ),
             br(),
-            div(
+         #   div(
               actionButton("back_hhsize", "Back", class = "btn-custom", style = "margin-right: 10px;"),
               actionButton("next_hhsize", "Next", class = "btn-custom")
-            )
-        )
+          #  )
+      #  )
       )
     } else if (current_q == 6) {
       # Annual income
       tagList(
         renderProgressBar(progress_percent),
-        div(class = "card",
-            div(
+       # div(class = "card",
+         #   div(
               h2("Estimated Annual Income"),
               br(),
               p("What is your estimated annual income?"),
-              p("This helps us calculate your expected monthly contribution to your voucher unit.")
-            ),
+              p("This helps us calculate your expected monthly contribution to your voucher unit."),
+         #   ),
             br(),
             numericInput(
               inputId = "annual_income",
@@ -429,17 +424,17 @@ server <- function(input, output, session) {
               step = 5000
             ),
             br(),
-            div(
+         #   div(
               actionButton("back_income", "Back", class = "btn-custom", style = "margin-right: 10px;"),
               actionButton("next_income", "Next", class = "btn-custom")
-            )
-        )
+         #   )
+       # )
       )
     } else if (current_q == 7) {
       # Results Page
       tagList(
         renderProgressBar(progress_percent),
-        div(class = "card",
+       # div(class = "card",
             h2("Your Neighborhood Matches"),
             br(),
             h4("Based on your preferences, here are some neighborhoods you might like:"),
@@ -451,11 +446,12 @@ server <- function(input, output, session) {
             h4("See your neighborhood matches on the map below. Click on a neighborhood to see more details."),
             br(),
             leafletOutput("results_map", height = "600px"),
-            div(
+           # div(
               class = "floating-card",
               actionButton("start_over", "Start Over", class = "btn-custom", style = "width: 100%;")
-            )
-        ))
+          #  )
+       # )
+      )
     }
   })
   
@@ -738,14 +734,14 @@ server <- function(input, output, session) {
           HTML(paste0("<span>", region_name, "</span><span class='dropdown-arrow'>▶</span>"))
         ),
         checkboxInput(region_id, label = "Select all", value = all_selected), # "Select all" checkbox
-        div(
-          class = "neighborhood-checkbox",
+       # div(
+       #   class = "neighborhood-checkbox",
           checkboxGroupInput(
             inputId = neighborhood_input_id,
             label = NULL,
             choices = region_list[[region_name]],
             selected = selected_neighborhoods
-          )
+       #   )
         )
       )
     })
