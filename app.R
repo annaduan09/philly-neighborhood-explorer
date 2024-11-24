@@ -45,7 +45,6 @@ ui <- fluidPage(
                      class = "btn-custom"),
       br(),
       div(
-        style = "text-align: center;",
         h5("This will take about 5 minutes.")
       ),
       br()
@@ -291,7 +290,6 @@ server <- function(input, output, session) {
             h4("After you've rated all the features, we'll show you neighborhoods that match your preferences."),
             br(),
             div(
-              style = "text-align: center;",
               actionButton("next_info_1", "Let's Go",  
                            class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
@@ -299,10 +297,9 @@ server <- function(input, output, session) {
       )
     } else if (current_q == 2) {
       
-      # Feature Importance Questions - All together on one page
       tagList(
         renderProgressBar(progress_percent),
-        # Render each feature question in a separate div
+        
         div(class = "card",
             h2("How important is it to have the following where you live?"),
             br(),
@@ -314,24 +311,19 @@ server <- function(input, output, session) {
               image_src <- paste0(feature_key, ".png")
               
               div(
-                style = "margin-bottom: 20px;",
-                div(
-                  style = "display: flex; align-items: left; justify-content: left;",
                   img(
                     src = image_src,
                     class = "img-fluid",
-                    style = "width: 30px; height: 30px; margin-right: 15px; margin-top: 15px",
                     alt = paste0(current_feature_display, " Image")
                   ),
-                  h3(current_question_text)
-                ),
+                  h3(current_question_text),
                 h4(current_info_text),
                 sliderTextInput(
                   inputId = feature_input_id,
                   label = NULL,
-                  choices = c("Less", "Somewhat", "More", "Most"),  # Labels
-                  grid = TRUE,
-                  selected = "Somewhat"  # Default selection
+                  choices = c("Less", "Somewhat", "More", "Most"),
+                  grid = FALSE,
+                  selected = "Somewhat"
                 )
               )
             }),
@@ -345,7 +337,6 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         div(class = "card",
             div(
-              style = "text-align: center;",
               h2("Almost There!"),
               br(),
               h4("Next, you'll select the neighborhoods you're interested in living. You can choose them by name using the list to the right or draw a shape around the neighborhoods you'd like to consider using the map."),
@@ -353,7 +344,6 @@ server <- function(input, output, session) {
             ),
             br(),
             div(
-              style = "text-align: center;",
               actionButton("next_info_2", "Let's Go",  
                            class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
             )
@@ -365,7 +355,6 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         div(class = "card",
             div(
-              style = "text-align: center;",
               h2("Select Your Preferred Neighborhoods"),
               br(),
               h4("Choose the neighborhoods you'd prefer to live in. Select via the map or the list below."),
@@ -387,7 +376,6 @@ server <- function(input, output, session) {
             ),
             br(),
             div(
-              style = "text-align: center;",
               actionButton("back_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
               actionButton("next_neigh_sel", "Next", class = "btn-custom")
             )
@@ -399,7 +387,6 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         div(class = "card",
             div(
-              style = "text-align: center;",
               h2("Household Size"),
               br(),
               p("How many people will be living in this unit?"),
@@ -416,7 +403,6 @@ server <- function(input, output, session) {
             ),
             br(),
             div(
-              style = "text-align: center;",
               actionButton("back_hhsize", "Back", class = "btn-custom", style = "margin-right: 10px;"),
               actionButton("next_hhsize", "Next", class = "btn-custom")
             )
@@ -428,7 +414,6 @@ server <- function(input, output, session) {
         renderProgressBar(progress_percent),
         div(class = "card",
             div(
-              style = "text-align: center;",
               h2("Estimated Annual Income"),
               br(),
               p("What is your estimated annual income?"),
@@ -445,7 +430,6 @@ server <- function(input, output, session) {
             ),
             br(),
             div(
-              style = "text-align: center;",
               actionButton("back_income", "Back", class = "btn-custom", style = "margin-right: 10px;"),
               actionButton("next_income", "Next", class = "btn-custom")
             )

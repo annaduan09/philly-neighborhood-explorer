@@ -1,8 +1,12 @@
-/* Ensure the html and body take up the full height */
 html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
+  height: 100%; 
+  width: 100%;
+  margin: 0;  
+  padding: 0;  
+  display: flex; 
+  justify-content: center; /* Center content horizontally */
+  align-items: flex-start;
+  text-align: center; /* Center text within its container */
 }
 
 
@@ -12,37 +16,23 @@ input[type="number"] {
 }
 
 /* Apply the Poppins font throughout the app */
-body, h1, h2, h3, h4, h5, h6, p, label, .btn, input, button, select { 
+body, h4, h5, h6, label, .btn, input, button, select { 
   font-family: 'Poppins', sans-serif;
   color: darkslategray;
   font-weight: 400; 
 }
 
-/* General Styling */
-body {
-  font-family: 'Poppins', sans-serif;
-  background-color: #f8f9fa;
-  color: gray;
-  margin: 0;
-  padding: 0;
-}
-
-/* Customize the header */
 h1, h2, h3 {
   color: darkcyan;
   font-weight: 600;
-  text-align: center;
 }
 
-/* Paragraph Styling */
 p {
-  text-align: center; /* Center text for clean alignment */
-  line-height: 1.6;    /* Increase line height for better readability */
-  margin-bottom: 1em;  /* Add space after each paragraph */
-  color: #333333; /* Set a dark gray color for better contrast */
+  line-height: 1.6;   
+  margin-bottom: 1em;  
+  color: #333333; 
 }
 
-/* Style the action buttons */
 .btn-custom {
   background-color: darkcyan;
   color: #FFFFFF;
@@ -64,7 +54,6 @@ p {
   justify-content: space-between;
 }
 
-/* Style the selection buttons */
 .btn-selection {
   background-color: #18BC9C;
   color: darkslategray;
@@ -79,7 +68,6 @@ p {
   background-color: #148F77;
 }
 
-/* Style the radio buttons */
 .shiny-input-radiogroup label {
   font-weight: 500;
   font-size: 16px;
@@ -90,14 +78,15 @@ p {
 #app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* Ensures it takes at least the full viewport height */
+  min-height: 100vh; 
+  min-width: 100vh;
 }
 
 /* Main content area grows to fill available space */
 .main-content {
   flex: 1;
   padding: 20px;
-  overflow-y: auto; /* Allows scrolling if content exceeds viewport */
+  overflow-y: auto; 
 }
 
 /* Style the main content area */
@@ -107,7 +96,6 @@ p {
 
 /* Style the welcome panel */
 #welcome_panel {
-  text-align: center;
   padding: 20px;
   margin-top: 10px;
 }
@@ -116,14 +104,13 @@ p {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Aligns content to the top */
+  justify-content: flex-start; 
   align-items: center;         /* Centers content horizontally */
 }
 
 /* Footer Styling */
 #footer {
-  text-align: center;
-  padding: 10px;
+  padding: 0;
   position: relative; /* Ensure this is not set to absolute or fixed */
   clear: both;
   background-color: darkcyan; /* Light background color */
@@ -176,12 +163,18 @@ p {
   background-color: white;
   border-radius: 6px;
   padding: 20px;
-  text-align: left;
-  align-items: center;
   margin: 20px auto;
   max-width: 100%;
   box-sizing: border-box;
   box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.02);
+}
+
+  
+  /* Centering vertically */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .question-info-text {
@@ -189,15 +182,9 @@ p {
   color: #6c757d; /* Lighter gray */
 }
 
-/* Adjust image responsiveness within card */
-.card img {
-  max-width: 20%;
-  height: auto;
-}
-
 /* Image Styling */
 .img-fluid {
-  max-width: 100%;
+  width: 3vw;
   height: auto;
 }
 
@@ -267,7 +254,6 @@ p {
 
 /* Style for selection buttons container */
 .selection-buttons {
-  text-align: center;
   margin-top: 20px;
 }
 
@@ -307,6 +293,7 @@ p {
 }
 .modal-footer {
   border-top: none;
+  width: 100vh;
 }
 .modal-content {
   border-radius: 15px;
@@ -323,21 +310,7 @@ p {
   margin-top: 10px;
 }
 
-/* Background Image Styling */
-body::before {
-  content: '';
-  background-image: url('https://drexel.edu/~/media/Drexel/Core-Site-Group/Core/Images/life-at-drexel/philadelphia/philly-3200x1600/philly-3200x1600_160x53.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0.1; /* 10% opacity */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1; /* Ensure the image stays behind all content */
-}
+
 
 /* Customize fonts */
 body, label, input, button, select { 
@@ -382,16 +355,11 @@ h1, h2, h3, h4 {
   border-radius: 5px;
 }
 
-.floating-card h4 {
-  margin-top: 0;
-}
-
 .match-neighs-text,
 .rec-neighs-text {
   margin-top: 10px;
 }
 
-/* Ensure Leaflet container is relative to position the floating card correctly */
 .leaflet-container {
   position: relative;
   border-radius: 8px;
@@ -442,11 +410,6 @@ h1, h2, h3, h4 {
   margin-top: 10px;
 }
 
-/* Adjustments for the images in the feature questions */
-.img-fluid {
-  max-width: 100%;
-  height: auto;
-}
 
 /* Adjustments for tables */
 table {
