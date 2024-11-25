@@ -20,37 +20,33 @@ ui <- fluidPage(
   
   tags$head(
     tags$link(
-      href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap",
+      href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap",
       rel = "stylesheet"
     ),
     includeCSS("www/styles.css")
   ),
   
-  # Main container for the app
+  div(
+    id = "app-header",
+    h1("🏡 Philadelphia Neighborhood Explorer")
+  ),
+  
   div(
     id = "app-container",
     div(
       id = "welcome_panel",
       class = "welcome-panel",
-        img(
-          src = "welcome.png",  
-          class = "img-fluid",  
-          alt = "Welcome Image"
-        ),
-        h1("Do you have a Housing Choice Voucher?"),
-        h4("Philadelphia is a big city made up of smaller areas and neighborhoods. It can be hard to know where to look for a home with a housing voucher."),
-        h4("This tool is designed to help you narrow down your housing search and determine your rent limit in different neighborhoods."),
+        h2("Do you have a Housing Choice Voucher?"),
+        h4("Philadelphia is a big city made up of smaller areas and neighborhoods. 
+        It can be hard to know where to look for a home with a housing voucher. 
+           This tool is designed to help you narrow down your housing search and determine your rent limit in different neighborhoods."),
         br(),
         actionButton("start_button", "Start",  
                      class = "btn-custom"),
       br(),
-      div(
-        h5("This will take about 5 minutes.")
-      ),
-      br()
+        p("This will take about 5 minutes."),
+      br(),
     ),
-    
-    # Main content area
     hidden(
       div(
         id = "main_content",
@@ -62,8 +58,8 @@ ui <- fluidPage(
 )
 
 #### DATA ####
+# Data panel
 nb <- st_read("panel_2024.geojson") %>%
-  # replace all numeric NAs with 0
   mutate(across(where(is.numeric), ~replace_na(., 0))) %>%
   st_as_sf() %>%
   st_make_valid() %>%
@@ -71,7 +67,7 @@ nb <- st_read("panel_2024.geojson") %>%
   mutate(across(starts_with("cost"), as.numeric))
 
 
-# Load the neighborhood boundaries
+# Neighborhood boundaries
 neigh_bounds <- st_read("phl_neighs_2024.geojson")%>%
   st_as_sf() %>%
   st_transform(crs = "EPSG:4326") %>%
@@ -155,45 +151,44 @@ features <- c(
 # List of questions
 question_info_list <- list(
   "safety" = list(
-    question = "Safety",
+    question = "🤝 Safety",
     info = "A safe neighborhood has less crime and can help you feel more secure."
   ),
   "transit_density" = list(
-    question = "Transit",
+    question = "🚎 Transit",
     info = "Living near transit can make it easier to get around the city without a car."
   ),
   "downtown_prox" = list(
-    question = "Close to Center City",
+    question = "🌆 Close to Center City",
     info = "Living close to Center City can make it easier to get to work, school, or other places you need to go."
   ),
   "shopping" = list(
-    question = "Commercial corridors",
+    question = "🛍️ Commercial corridors",
     info = "Being close to shops means you can easily buy what you need, and the neighborhood might feel more lively."
   ),
   "grocery" = list(
-    question = "Grocery stores",
+    question = "🥕 Grocery stores",
     info = "Living near grocery stores makes it easier to buy fresh food and other essentials."
   ),
   "parks" = list(
-    question = "Parks and green space",
+    question = "🌳 Parks and green space",
     info = "Living near parks gives you a place to relax, exercise, and enjoy fresh air."
   ),
   "healthcare" = list(
-    question = "Hospitals and clinics",
+    question = "🩺 Healthcare facilities",
     info = "Living near healthcare providers makes it easier to see a doctor when you need to, especially if you need regular medical care."
   ),
   "same_house_pct2022" = list(
-    question = "Longtime residents",
+    question = "🏘️ Longtime residents",
     info = "Neighborhoods where people have lived a long time often have a strong sense of community where neighbors know each other well."
   ),
   "vouchers" = list(
-    question = "Voucher user households",
+    question = "🔑 Voucher user households",
     info = "These neighborhoods have more households that use a voucher."
   )
 )
 
 #### FUNCTIONS #### 
-# Function to render progress bar
 renderProgressBar <- function(percent) {
   tags$div(class = "progress",
            tags$div(class = "progress-bar",
@@ -224,7 +219,7 @@ server <- function(input, output, session) {
   
   matched_5_neighs <- reactiveVal(NULL)
   
-  # ReactiveValues to prevent infinite loops
+  # Prevent infinite loops
   update_in_progress <- reactiveValues(region = FALSE, neighborhood = FALSE)
   
   ##### Start App #####
@@ -244,8 +239,7 @@ server <- function(input, output, session) {
             lapply(neighborhoods, function(nbh) {
               div(class = "preferred-item",
                   span(nbh),
-                  actionButton(paste0("remove_", gsub(" ", "_", nbh)), "Remove", icon = icon("trash"), 
-                               style = "padding: 3px 7px; font-size: 12px;")
+                  actionButton(paste0("remove_", gsub(" ", "_", nbh)), "Remove", icon = icon("trash"))
               )
             })
         )
@@ -273,120 +267,105 @@ server <- function(input, output, session) {
     current_q <- current_question()
     progress_percent <- ((current_q - 1) / (total_steps)) * 100
     
+    
+    
     if (current_q == 1) {
       tagList(
         renderProgressBar(progress_percent),
-        #div(class = "card",
             h2("Welcome to Philly Neighborhood Explorer."),
             br(),
-            h4("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher. Let's get started by understanding what features are important to you."),
-            h4("The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you."),
+            h4("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher. 
+            Let's get started by understanding what features are important to you. 
+               The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you."),
             h4("After you've rated all the features, we'll show you neighborhoods that match your preferences."),
             br(),
-            #div(
               actionButton("next_info_1", "Let's Go",  
                            class = "btn-custom")
-            #)
-       # )
       )
     } else if (current_q == 2) {
       
       tagList(
         renderProgressBar(progress_percent),
         
-        #div(class = "card",
-            h2("How important is it to have the following where you live?"),
-            br(),
-            lapply(names(features), function(feature_key) {
-              current_feature_display <- features[[feature_key]]
-              current_question_text <- question_info_list[[feature_key]]$question
-              current_info_text <- question_info_list[[feature_key]]$info
-              feature_input_id <- paste0("importance_", gsub(" ", "_", feature_key))
-              image_src <- paste0(feature_key, ".png")
-              
-              div(
-                  img(
-                    src = image_src,
-                    class = "img-fluid",
-                    alt = paste0(current_feature_display, " Image")
-                  ),
-                  h3(current_question_text),
-                h4(current_info_text),
-                sliderTextInput(
-                  inputId = feature_input_id,
-                  label = NULL,
-                  choices = c("Less", "Somewhat", "More", "Most"),
-                  grid = FALSE,
-                  selected = "Somewhat"
-                )
-              )
-            }),
-            br(),
-            actionButton("back_feature", "Back", class = "btn-custom"),
-            actionButton("next_feature", "Next", class = "btn-custom")
-      #  )
-        )
+        h2("How important is it to have the following where you live?"),
+        br(),
+        
+        tagList(
+          lapply(names(features), function(feature_key) {
+            current_feature_display <- features[[feature_key]]
+            current_question_text <- question_info_list[[feature_key]]$question
+            current_info_text <- question_info_list[[feature_key]]$info
+            feature_input_id <- paste0("importance_", gsub(" ", "_", feature_key))
+            
+            tagList(
+                h3(current_question_text),
+              p(id = "question-info", current_info_text),
+              sliderTextInput(
+                inputId = feature_input_id,
+                label = NULL,
+                choices = c("Less", "Somewhat", "More", "Most"),
+                grid = FALSE,
+                selected = "Somewhat"
+              ),
+              br()
+            )
+          })
+        ),
+        
+        br(),
+        actionButton("back_feature", "Back", class = "btn-custom"),
+        actionButton("next_feature", "Next", class = "btn-custom")
+      )
     } else if (current_q == 3) {
       # Preparation Page 2
       tagList(
         renderProgressBar(progress_percent),
-       # div(class = "card",
-       #     div(
               h2("Almost There!"),
               br(),
-              h4("Next, you'll select the neighborhoods you're interested in living. You can choose them by name using the list to the right or draw a shape around the neighborhoods you'd like to consider using the map."),
+              h4("Next, we'll ask you to select places you'd prefer to live in Philadelphia. You have two options: you can either draw the area(s) you'd like to consider using our map tool or select from a list of Philadelphia neighborhoods."),
               h4("This will help us tailor the best recommendations for you."),
-        #    ),
-            br(),
+              br(),
+              img(
+                src = "map-instructions.png",
+                width = "60%",
+                alt = "Neighborhood Selection Instructions Image"
+              ),
+              br(),
             div(
               actionButton("next_info_2", "Let's Go",  
-                           class = "btn-custom", style = "font-size: 16px; padding: 10px 20px;")
+                           class = "btn-custom")
             )
-       # )
       )
     } else if (current_q == 4) {
-      # Neighborhood Selection
       tagList(
         renderProgressBar(progress_percent),
-       # div(class = "card",
-          #  div(
               h2("Select Your Preferred Neighborhoods"),
+              h4("Select via the map or the list below."),
               br(),
-              h4("Choose the neighborhoods you'd prefer to live in. Select via the map or the list below."),
-              br(),
-              # Add a "Clear All Selections" button
-              actionButton("select_all", "Select All", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("select_all", "Select All", class = "btn-custom"),
               actionButton("clear_all", "Clear All Selections", class = "btn-custom"),
-         #   ),
             br(),
             fluidRow(
               column(6,
-                     # The map output
-                     leafletOutput("philly_map_selection", height = "600px")
+                     leafletOutput("philly_map_selection", height = "500px")
               ),
               column(6,
-                     # The list output
                      uiOutput("region_neighborhood_selection_ui")
               )
             ),
             br(),
             div(
-              actionButton("back_neigh_sel", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("back_neigh_sel", "Back", class = "btn-custom"),
               actionButton("next_neigh_sel", "Next", class = "btn-custom")
             )
-        #)
       )
     } else if (current_q == 5) {
-      # Household size
       tagList(
         renderProgressBar(progress_percent),
-       # div(class = "card",
-      #      div(
               h2("Household Size"),
               br(),
-              p("How many people will be living in this unit?"),
-              p("This helps determine how much rent your voucher will cover."),
-         #   ),
+              h4("How many people will be living in this unit?"),
+              h4("This helps determine how much rent your voucher will cover."),
             br(),
             numericInput(
               inputId = "household_size",
@@ -397,23 +376,16 @@ server <- function(input, output, session) {
               step = 1
             ),
             br(),
-         #   div(
-              actionButton("back_hhsize", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("back_hhsize", "Back", class = "btn-custom"),
               actionButton("next_hhsize", "Next", class = "btn-custom")
-          #  )
-      #  )
       )
     } else if (current_q == 6) {
-      # Annual income
       tagList(
         renderProgressBar(progress_percent),
-       # div(class = "card",
-         #   div(
               h2("Estimated Annual Income"),
               br(),
-              p("What is your estimated annual income?"),
-              p("This helps us calculate your expected monthly contribution to your voucher unit."),
-         #   ),
+              h4("What is your estimated annual income?"),
+              h4("This helps us calculate your expected monthly contribution to your voucher unit."),
             br(),
             numericInput(
               inputId = "annual_income",
@@ -424,33 +396,24 @@ server <- function(input, output, session) {
               step = 5000
             ),
             br(),
-         #   div(
-              actionButton("back_income", "Back", class = "btn-custom", style = "margin-right: 10px;"),
+              actionButton("back_income", "Back", class = "btn-custom"),
               actionButton("next_income", "Next", class = "btn-custom")
-         #   )
-       # )
       )
     } else if (current_q == 7) {
-      # Results Page
       tagList(
         renderProgressBar(progress_percent),
-       # div(class = "card",
             h2("Your Neighborhood Matches"),
             br(),
             h4("Based on your preferences, here are some neighborhoods you might like:"),
             uiOutput("neighborhood_details_table"),
             br(),
-            h4("Also consider these neighborhoods. These neighborhoods are a great match for your neighborhood preferences, but fall outside of your search area."),
+            h4("Also consider these neighborhoods which match for your neighborhood preferences, but fall outside of your search area."),
             uiOutput("neighborhood_recs_table"),
             br(),
             h4("See your neighborhood matches on the map below. Click on a neighborhood to see more details."),
             br(),
             leafletOutput("results_map", height = "600px"),
-           # div(
-              class = "floating-card",
-              actionButton("start_over", "Start Over", class = "btn-custom", style = "width: 100%;")
-          #  )
-       # )
+              actionButton("start_over", "Start Over", class = "btn-custom")
       )
     }
   })
@@ -460,12 +423,10 @@ server <- function(input, output, session) {
     income <- annual_income()
     household_size_val <- household_size()
     
-    # Check if inputs are available
     if (is.null(income) || is.null(household_size_val) || is.na(income) || is.na(household_size_val)) {
       return(0)  
     }
-    
-    # Calculate contribution based on the provided logic
+
     if (income <= 167) {
       return(50)
     }
@@ -510,10 +471,8 @@ server <- function(input, output, session) {
     current_feature_key <- feature_keys[feature_index]
     
     
-    # Get the selected label from the input
     selected_label <- input[[paste0("importance_", gsub(" ", "_", current_feature_key))]]
     
-    # Convert the label to the corresponding numeric value
     selected_value <- label_to_value[selected_label]
     
     # Now `selected_value` contains the numeric value (0, 1, 2, or 3)
@@ -553,7 +512,6 @@ server <- function(input, output, session) {
         footer = NULL
       ))
     } else {
-      # Store the input
       household_size(input$household_size)
       current_question(6)
     }
@@ -734,14 +692,11 @@ server <- function(input, output, session) {
           HTML(paste0("<span>", region_name, "</span><span class='dropdown-arrow'>▶</span>"))
         ),
         checkboxInput(region_id, label = "Select all", value = all_selected), # "Select all" checkbox
-       # div(
-       #   class = "neighborhood-checkbox",
           checkboxGroupInput(
             inputId = neighborhood_input_id,
             label = NULL,
             choices = region_list[[region_name]],
             selected = selected_neighborhoods
-       #   )
         )
       )
     })
@@ -1015,14 +970,7 @@ server <- function(input, output, session) {
         labelOptions = labelOptions(
           noHide = TRUE,
           direction = "top",
-          textOnly = TRUE,
-          style = list(
-            "color" = "darkslategray",
-            "font-size" = "12px",
-            "background-color" = "rgba(255,255,255,0.7)",
-            "padding" = "2px 4px",
-            "border-radius" = "3px"
-          )
+          textOnly = TRUE
         )
       ) %>%
       addLabelOnlyMarkers(
@@ -1033,14 +981,7 @@ server <- function(input, output, session) {
         labelOptions = labelOptions(
           noHide = TRUE,
           direction = "top",
-          textOnly = TRUE,
-          style = list(
-            "color" = "darkslategray",
-            "font-size" = "12px",
-            "background-color" = "rgba(255,255,255,0.7)",
-            "padding" = "2px 4px",
-            "border-radius" = "3px"
-          )
+          textOnly = TRUE
         )
       ) %>%
       addLegend(
@@ -1113,7 +1054,7 @@ server <- function(input, output, session) {
     hh_size <- household_size()
     
     if (nrow(rec_neigh) == 0) {
-      return(p("No additional recommendations available."))
+      return(h4("No additional recommendations available."))
     }
     
     # determine max rent in neighborhood to be based on household size
@@ -1158,7 +1099,6 @@ server <- function(input, output, session) {
       ),
       "</tbody></table>"
     )
-    
     HTML(
       paste0(
         "<div style='max-height: 200px; overflow-y: auto;'>", table_html, "</div>"

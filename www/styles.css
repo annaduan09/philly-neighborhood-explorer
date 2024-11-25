@@ -1,36 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
 html, body {
+  font-family: 'Poppins', sans-serif;
   height: 100%; 
   width: 100%;
-  margin: 0;  
   padding: 0;  
+  margin: 0;
   display: flex; 
-  justify-content: center; /* Center content horizontally */
-  align-items: flex-start;
-  text-align: center; /* Center text within its container */
+  align-items: flex-start; 
+  justify-content: center; 
+  text-align: center; 
+}
+
+div.container-fluid {
+  margin: 0;
+  padding: 0;
+}
+
+div, table, form, input, button, select {
+  margin: 0 auto; 
+}
+
+#welcome_panel {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center; 
 }
 
 
-/* Set maximum width for number inputs */
-input[type="number"] {
-  max-width: 80%;
-}
-
-/* Apply the Poppins font throughout the app */
-body, h4, h5, h6, label, .btn, input, button, select { 
-  font-family: 'Poppins', sans-serif;
+p, h4, .btn, input, button, select { 
   color: darkslategray;
   font-weight: 400; 
+  max-width: 90ch; 
+  line-height: 1.6; 
+  margin: 20px auto; 
+  padding: 0 1rem; 
+  overflow-wrap: break-word; 
 }
 
 h1, h2, h3 {
   color: darkcyan;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+#region_neighborhood_selection_ui span {
+  font-weight: 200;
 }
 
 p {
-  line-height: 1.6;   
-  margin-bottom: 1em;  
-  color: #333333; 
+  line-height: 1.5;   
+  color: #839192;
+}
+
+#app-header {
+  margin: 0;
+  width: 100%; 
+  text-align: left;
+  align-content: left;
+  justify-content: flex-start;
+  background-color: darkcyan; 
+  padding: 15px 20px;
+  position: sticky; 
+  top: 0; 
+  z-index: 1000; 
+}
+
+#app-header h1 {
+  color: white;
+  font-size: 2rem;
+  font-weight: 200;
 }
 
 .btn-custom {
@@ -44,51 +86,24 @@ p {
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
+
 .btn-custom:hover {
   background-color: #006666;
   color: white;
 }
 
-.action-buttons {
-  display: flex;
-  justify-content: space-between;
-}
 
-.btn-selection {
-  background-color: #18BC9C;
-  color: darkslategray;
-  border: none;
-  font-size: 14px;
-  padding: 10px 20px;
-  margin: 10px;
-  border-radius: 20px;
-  transition: background-color 0.3s ease;
-}
-.btn-selection:hover {
-  background-color: #148F77;
-}
-
-.shiny-input-radiogroup label {
-  font-weight: 500;
-  font-size: 16px;
-  color: darkslategray;
-}
-
-
-/* Main content area grows to fill available space */
 .main-content {
-  flex: 1;
+  flex: 0;
   padding: 20px;
   width: 100vw;
   overflow-y: auto; 
 }
 
-/* Style the main content area */
 #main_content {
   margin-top: 30px;
 }
 
-/* Style for progress bar */
 .progress {
   height: 20px;
   margin-bottom: 20px;
@@ -101,65 +116,14 @@ p {
   background-color: darkcyan;
 }
 
-.welcome-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+p#question-info {
+  max-width: 60ch;
 }
 
-.welcome-panel > div {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start; /* Aligns content to the top */
-  align-items: center;         /* Centers content horizontally */
-  padding-top: 0px;           /* Adjust this value to move content down */
-}
-
-.welcome-panel img {
-  max-height: 50vh;
-  width: auto;
-  padding: 0;
-  margin: 0;
-}
-
-/* Adjust the card styling */
-.card {
-  background-color: white;
-  border-radius: 6px;
-  padding: 20px;
-  margin: 20px auto;
-  max-width: 100%;
-  box-sizing: border-box;
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.02);
-}
-
-  
-  /* Centering vertically */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.question-info-text {
-  font-size: 18px;
-  color: #6c757d; /* Lighter gray */
-}
-
-/* Image Styling */
-.img-fluid {
-  width: 3vw;
-  height: auto;
-}
-
-/* Indent neighborhoods */
 .neighborhood-checkbox {
   margin-left: 20px;
 }
 
-/* Styles for the region dropdown */
 .region-dropdown {
   margin-bottom: 10px;
 }
@@ -186,44 +150,19 @@ p {
   transform: rotate(90deg);
 }
 
-/* Style for excluded neighborhoods list */
-.excluded-list {
-  background-color: #F8F9FA;
-  padding: 15px;
-  border-radius: 10px;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 15px;
-}
-.excluded-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #E9ECEF;
-}
-.excluded-item:last-child {
-  border-bottom: none;
-}
-.excluded-item button {
-  background-color: salmon;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.excluded-item button:hover {
-  background-color: salmon;
+div.checkbox {
+  text-align: left;
 }
 
-/* Style for selection buttons container */
+.region-dropdown {
+  align-content: left;
+  justify-content: left;
+}
+
 .selection-buttons {
   margin-top: 20px;
 }
 
-/* Preferred and Recommended Lists */
 .preferred-list, .recommended-list {
   margin-top: 20px;
 }
@@ -236,148 +175,6 @@ p {
   background-color: #f8f9fa;
 }
 
-/* Enhance Leaflet map controls */
-.leaflet-control {
-  font-family: 'Poppins', sans-serif;
-}
-
-/* Adjust image responsiveness */
-#welcome_panel img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 15px;
-  max-height: 300px; /* Limit the maximum height */
-}
-
-/* Modal customizations */
-.modal-header {
-  background-color: #3498DB;
-  color: white;
-  border-bottom: none;
-  border-top-left-radius: 15px;
-  border-top-right-radius: 15px;
-}
-.modal-footer {
-  border-top: none;
-  width: 100vh;
-}
-.modal-content {
-  border-radius: 15px;
-}
-
-/* Adjust checkbox group labels */
-.checkbox-group label {
-  font-size: 14px;
-  color: #34495E;
-}
-
-/* Adjust action buttons in modals */
-.modal .btn-custom, .modal .btn-selection {
-  margin-top: 10px;
-}
-
-
-
-/* Customize fonts */
-body, label, input, button, select { 
-  font-family: 'Poppins', sans-serif;
-  color: darkslategray;
-  font-weight: 400; /* Adjust as needed */
-}
-h1, h2, h3, h4 { 
-  font-weight: 400; 
-}
-
-#controls {
-  /* Appearance */
-  background-color: white;
-  padding: 0 10px 10px 10px;
-  cursor: move;
-  /* Fade out while not hovering */
-  opacity: 0.7;
-  zoom: 0.9;
-  transition: opacity 500ms 1s;
-}
-
-#controls:hover {
-  /* Fade in while hovering */
-  opacity: 0.75;
-  transition-delay: 0;
-}
-
-#logo:hover {
-  /* Fade in while hovering */
-  opacity: 0.95;
-  transition-delay: 0;
-}
-
-/* Floating card adjustments */
-.floating-card {
-  position: relative;
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #ffffff;
-  border: 1px solid #dddddd;
-  border-radius: 5px;
-}
-
-.match-neighs-text,
-.rec-neighs-text {
-  margin-top: 10px;
-}
-
-.leaflet-container {
-  position: relative;
-  border-radius: 8px;
-}
-
-/* Style the tab content within the floating card */
-.tab-content {
-  padding: 10px;
-}
-
-/* Style the tab headers */
-.nav-tabs > li > a {
-  color: #333;
-  background-color: transparent;
-  border: none;
-}
-
-/* Style for active tab headers */
-.nav-tabs > li.active > a,
-.nav-tabs > li.active > a:hover,
-.nav-tabs > li.active > a:focus {
-  color: #fff;
-  background-color: darkcyan;
-  border-color: darkcyan darkcyan transparent;
-}
-
-/* Hover effect for tab headers */
-.nav-tabs > li > a:hover {
-  background-color: #eee;
-}
-
-/* Responsive design: Adjust floating card on smaller screens */
-@media (max-width: 768px) {
-  .floating-card {
-    width: 90%;
-    left: 5%;
-    top: 10px;
-  }
-}
-
-/* Optional: Style the ordered list within the floating card */
-.floating-card ol {
-  padding-left: 20px;
-}
-
-/* Optional: Style the "Start Over" button within the floating card */
-.floating-card .btn-custom {
-  margin-top: 10px;
-}
-
-
-/* Adjustments for tables */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -398,7 +195,6 @@ table tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
-/* Input number max width */
 input[type="number"] {
   max-width: 80%;
 }
