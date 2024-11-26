@@ -36,7 +36,7 @@ ui <- fluidPage(
     div(
       id = "welcome_panel",
       class = "welcome-panel",
-        h2("Do you have a Housing Choice Voucher?"),
+        h1("Do you have a Housing Choice Voucher?"),
         h4("Philadelphia is a big city made up of smaller areas and neighborhoods. 
         It can be hard to know where to look for a home with a housing voucher. 
            This tool is designed to help you narrow down your housing search and determine your rent limit in different neighborhoods."),
@@ -272,7 +272,7 @@ server <- function(input, output, session) {
     if (current_q == 1) {
       tagList(
         renderProgressBar(progress_percent),
-            h2("Welcome to Philly Neighborhood Explorer."),
+            h2("Welcome to PHL Neighborhood Explorer."),
             br(),
             h4("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher. 
             Let's get started by understanding what features are important to you. 
@@ -908,20 +908,20 @@ server <- function(input, output, session) {
         fillOpacity = 0.7,
         label = ~tract_neigh,
         popup = ~paste0("<h2>", tract_neigh, "</h2>
-                        <br/>
-                        <strong>Max rent:</strong> $", cost_2br,
+                <br/>
+                <strong>Max rent:</strong> $", cost_2br,
                         "<br/>
-                        <strong>You pay:</strong> $", monthly_payment,
+                <strong>You pay:</strong> $", monthly_payment,
                         "<br/>
-                        <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
+                <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
                         "<br/>
-                        <strong>Elementary School:</strong> ", es_catchment,
+                <strong>Elementary School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", es_catchment, "</a>",
                         "<br/>
-                        <strong>Middle School:</strong> ", ms_catchment,
+                <strong>Middle School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", ms_catchment, "</a>",
                         "<br/>
-                        <strong>High School:</strong> ", hs_catchment,
+                <strong>High School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", hs_catchment, "</a>",
                         "<br/>
-                        <strong>Transit Lines:</strong> ", transit_line_names),
+                <strong>Transit Lines:</strong> <a href='https://plan.septa.org/#/' target='_blank'>", transit_line_names, "</a>"),
         highlight = highlightOptions(
           weight = 2,
           color = "white",
@@ -940,20 +940,20 @@ server <- function(input, output, session) {
         fillOpacity = 0.7,
         label = ~tract_neigh,
         popup = ~paste0("<h2>", tract_neigh, "</h2>
-                        <br/>
-                        <strong>Max rent:</strong> $", cost_2br,
+                <br/>
+                <strong>Max rent:</strong> $", cost_2br,
                         "<br/>
-                        <strong>You pay:</strong> $", monthly_payment,
+                <strong>You pay:</strong> $", monthly_payment,
                         "<br/>
-                        <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
+                <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
                         "<br/>
-                        <strong>Elementary School:</strong> ", es_catchment,
+                <strong>Elementary School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", es_catchment, "</a>",
                         "<br/>
-                        <strong>Middle School:</strong> ", ms_catchment,
+                <strong>Middle School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", ms_catchment, "</a>",
                         "<br/>
-                        <strong>High School:</strong> ", hs_catchment,
+                <strong>High School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", hs_catchment, "</a>",
                         "<br/>
-                        <strong>Transit Lines:</strong> ", transit_line_names),
+                <strong>Transit Lines:</strong> <a href='https://plan.septa.org/#/' target='_blank'>", transit_line_names, "</a>"),
         highlight = highlightOptions(
           weight = 2,
           color = "white",
