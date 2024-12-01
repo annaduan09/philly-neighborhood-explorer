@@ -160,15 +160,15 @@ question_info_list <- list(
   ),
   "downtown_prox" = list(
     question = "🌆 Close to Center City",
-    info = "Living close to Center City can make it easier to get to work, school, or other places you need to go."
+    info = "Neighborhoods close to Center City may have more amenities and opportunities."
   ),
   "shopping" = list(
     question = "🛍️ Commercial corridors",
-    info = "Being close to shops means you can easily buy what you need, and the neighborhood might feel more lively."
+    info = "Living close to commercial corridors means easier access to shops and other amenities."
   ),
   "grocery" = list(
     question = "🥕 Grocery stores",
-    info = "Living near grocery stores makes it easier to buy fresh food and other essentials."
+    info = "Being near grocery stores makes it easier to buy fresh food and other essentials."
   ),
   "parks" = list(
     question = "🌳 Parks and green space",
@@ -176,15 +176,15 @@ question_info_list <- list(
   ),
   "healthcare" = list(
     question = "🩺 Healthcare facilities",
-    info = "Living near healthcare providers makes it easier to see a doctor when you need to, especially if you need regular medical care."
+    info = "Living near healthcare providers makes it easier to see a doctor when you need to."
   ),
   "same_house_pct2022" = list(
     question = "🏘️ Longtime residents",
-    info = "Neighborhoods where people have lived a long time often have a strong sense of community where neighbors know each other well."
+    info = "Residents in these neighborhoods have been living here for longer."
   ),
   "vouchers" = list(
-    question = "🔑 Voucher user households",
-    info = "These neighborhoods have more households that use a voucher."
+    question = "🔑 Other voucher users",
+    info = "These neighborhoods have more households that also use a voucher."
   )
 )
 
@@ -272,14 +272,14 @@ server <- function(input, output, session) {
     if (current_q == 1) {
       tagList(
         renderProgressBar(progress_percent),
-            h2("Welcome to PHL Neighborhood Explorer."),
-            br(),
-            h4("We're here to help you find Philadelphia neighborhoods where you can use your housing voucher. 
-            Let's get started by understanding what features are important to you. 
-               The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you."),
-            h4("After you've rated all the features, we'll show you neighborhoods that match your preferences."),
-            br(),
-              actionButton("next_info_1", "Let's Go",  
+        h1("Getting started"),
+        br(),
+        h4("We'll start by learning what neighborhood features are important to you. 
+            The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you. 
+               After you've rated all the features, we'll show you neighborhoods that match your preferences."),
+        HTML('<iframe width="500" src="slider-demo.mov" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+        br(),
+              actionButton("next_info_1", "I'm ready",  
                            class = "btn-custom")
       )
     } else if (current_q == 2) {
@@ -287,7 +287,7 @@ server <- function(input, output, session) {
       tagList(
         renderProgressBar(progress_percent),
         
-        h2("How important is it to have the following where you live?"),
+        h1("How important is it to have the following where you live?"),
         br(),
         
         tagList(
@@ -320,30 +320,28 @@ server <- function(input, output, session) {
       # Preparation Page 2
       tagList(
         renderProgressBar(progress_percent),
-              h2("Almost There!"),
+              h1("Neighborhood Preferences"),
               br(),
-              h4("Next, we'll ask you to select places you'd prefer to live in Philadelphia. You have two options: you can either draw the area(s) you'd like to consider using our map tool or select from a list of Philadelphia neighborhoods."),
-              h4("This will help us tailor the best recommendations for you."),
+              h4("Next, we'll ask you to select places you'd prefer to live in Philadelphia. 
+              You have two options: you can either draw the area(s) you'd like to consider using our map tool or select from a list of Philadelphia neighborhoods. 
+              You can also click 'Select All' to consider all of Philadelphia, or click 'Clear All' to start over. 
+                 This will help us show you the best recommendations."),
               br(),
-              img(
-                src = "map-instructions.png",
-                width = "60%",
-                alt = "Neighborhood Selection Instructions Image"
-              ),
+        HTML('<iframe width="1200" src="neigh-select-demo.mov" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
               br(),
             div(
-              actionButton("next_info_2", "Let's Go",  
+              actionButton("next_info_2", "I'm ready",
                            class = "btn-custom")
             )
       )
     } else if (current_q == 4) {
       tagList(
         renderProgressBar(progress_percent),
-              h2("Select Your Preferred Neighborhoods"),
-              h4("Select via the map or the list below."),
+              h1("Preferred Neighborhoods"),
+              h4("You can circle areas on the map or use the list below. Use the 'Select All' button to pick all neighborhoods. Use 'Clear All' to start over."),
               br(),
               actionButton("select_all", "Select All", class = "btn-custom"),
-              actionButton("clear_all", "Clear All Selections", class = "btn-custom"),
+              actionButton("clear_all", "Clear All", class = "btn-custom"),
             br(),
             fluidRow(
               column(6,
@@ -355,14 +353,14 @@ server <- function(input, output, session) {
             ),
             br(),
             div(
-              actionButton("back_neigh_sel", "Back", class = "btn-custom"),
-              actionButton("next_neigh_sel", "Next", class = "btn-custom")
+              actionButton("back_neigh_sel", "Reread instructions", class = "btn-custom"),
+              actionButton("next_neigh_sel", "Done", class = "btn-custom")
             )
       )
     } else if (current_q == 5) {
       tagList(
         renderProgressBar(progress_percent),
-              h2("Household Size"),
+              h1("Household Size"),
               br(),
               h4("How many people will be living in this unit?"),
               h4("This helps determine how much rent your voucher will cover."),
@@ -382,7 +380,7 @@ server <- function(input, output, session) {
     } else if (current_q == 6) {
       tagList(
         renderProgressBar(progress_percent),
-              h2("Estimated Annual Income"),
+              h1("Annual Income"),
               br(),
               h4("What is your estimated annual income?"),
               h4("This helps us calculate your expected monthly contribution to your voucher unit."),
@@ -402,9 +400,9 @@ server <- function(input, output, session) {
     } else if (current_q == 7) {
       tagList(
         renderProgressBar(progress_percent),
-            h2("Your Neighborhood Matches"),
+            h1("Neighborhoods for you"),
             br(),
-            h4("Based on your preferences, here are some neighborhoods you might like:"),
+            h4("Based on your preferences, here are some neighborhoods you may like:"),
             uiOutput("neighborhood_details_table"),
             br(),
             h4("Also consider these neighborhoods which match for your neighborhood preferences, but fall outside of your search area."),
@@ -921,7 +919,7 @@ server <- function(input, output, session) {
                         "<br/>
                 <strong>High School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", hs_catchment, "</a>",
                         "<br/>
-                <strong>Transit Lines:</strong> <a href='https://plan.septa.org/#/' target='_blank'>", transit_line_names, "</a>"),
+                <strong>SEPTA Lines:</strong> <a href='https://plan.septa.org/#/' target='_blank'>", transit_line_names, "</a>"),
         highlight = highlightOptions(
           weight = 2,
           color = "white",
@@ -953,7 +951,7 @@ server <- function(input, output, session) {
                         "<br/>
                 <strong>High School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", hs_catchment, "</a>",
                         "<br/>
-                <strong>Transit Lines:</strong> <a href='https://plan.septa.org/#/' target='_blank'>", transit_line_names, "</a>"),
+                <strong>SEPTA Lines:</strong> <a href='https://plan.septa.org/#/' target='_blank'>", transit_line_names, "</a>"),
         highlight = highlightOptions(
           weight = 2,
           color = "white",
