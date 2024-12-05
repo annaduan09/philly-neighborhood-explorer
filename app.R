@@ -338,14 +338,14 @@ server <- function(input, output, session) {
               actionButton("select_all", "Select All", class = "btn-custom"),
               actionButton("clear_all", "Clear All", class = "btn-custom"),
             br(),
-            fluidRow(
-              column(6,
-                     leafletOutput("philly_map_selection", height = "500px")
-              ),
-              column(6,
-                     uiOutput("region_neighborhood_selection_ui")
-              )
-            ),
+        fluidRow(
+          column(width = 3,
+                 uiOutput("region_neighborhood_selection_ui")  
+          ),
+          column(width = 9,
+                 leafletOutput("philly_map_selection")     
+          )
+        ),
             br(),
             div(
               actionButton("back_neigh_sel", "Reread instructions", class = "btn-custom"),
@@ -580,7 +580,6 @@ server <- function(input, output, session) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
       updateCheckboxInput(session, region_id, value = TRUE)
     })
-    
     showNotification("All neighborhoods have been selected.", type = "message")
   })
   
@@ -603,7 +602,7 @@ server <- function(input, output, session) {
     showNotification("All selected neighborhoods have been cleared.", type = "message")
   })
   
-  # Render the Leaflet map with drawing tools
+  # Neighborhood selection leaflet map
   output$philly_map_selection <- renderLeaflet({
     req(neigh_bounds)
     leaflet(data = neigh_bounds,
@@ -627,29 +626,20 @@ server <- function(input, output, session) {
         fillOpacity = 0.5,
         label = ~neighborhood,
         highlight = highlightOptions(weight = 2, color = "#666", fillOpacity = 0.7)
-      ) %>%
-      addDrawToolbar(
-        targetGroup = 'drawnPoly',
-        polylineOptions = FALSE,
-        polygonOptions = drawPolygonOptions(),
-        circleOptions = FALSE,
-        rectangleOptions = FALSE,
-        markerOptions = FALSE,
-        circleMarkerOptions = FALSE,
-        editOptions = editToolbarOptions()
       )
   })
   
-  # Handle drawing events on the map
-  observeEvent(input$philly_map_selection_draw_new_feature, {
-    feature <- input$philly_map_selection_draw_new_feature
-    coords <- feature$geometry$coordinates[[1]]
-    coords_mat <- do.call(rbind, lapply(coords, function(x) c(x[[1]], x[[2]])))
-    drawn_polygon <- st_polygon(list(coords_mat))
-    drawn_sf <- st_sfc(drawn_polygon, crs = st_crs(neigh_bounds))
-    intersecting_neighborhoods <- neigh_bounds[st_intersects(neigh_bounds, drawn_sf, sparse = FALSE), ]
+  observeEvent(input$philly_map_selection_shape_click, {
+    click <- input$philly_map_selection_shape_click
+    clicked_neighborhood <- click$id
+    
     current_preferences <- preferred_neighborhoods()
-    new_preferences <- unique(c(current_preferences, intersecting_neighborhoods$neighborhood))
+    
+    if (clicked_neighborhood %in% current_preferences) {
+      new_preferences <- setdiff(current_preferences, clicked_neighborhood)
+    } else {
+      new_preferences <- c(current_preferences, clicked_neighborhood)
+    }
     preferred_neighborhoods(new_preferences)
   })
   
