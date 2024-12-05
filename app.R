@@ -140,12 +140,11 @@ features <- c(
   "safety" = "Safety",
   "transit_density" = "Transit",
   "downtown_prox" = "Close to Center City",
-  "shopping" = "Shopping",
+  "shopping" = "Shops and Businesses",
   "grocery" = "Grocery stores",
   "parks" = "Parks",
   "healthcare" = "Healthcare",
-  "same_house_pct2022" = "Longtime residents",
-  "vouchers" = "Voucher users"
+  "same_house_pct2022" = "Longtime residents"
 )
 
 # List of questions
@@ -163,8 +162,8 @@ question_info_list <- list(
     info = "Neighborhoods close to Center City may have more amenities and opportunities."
   ),
   "shopping" = list(
-    question = "🛍️ Commercial corridors",
-    info = "Living close to commercial corridors means easier access to shops and other amenities."
+    question = "🛍 Shops and Businesses",
+    info = "Living close to shops and businesses can be convenient for shopping and activities."
   ),
   "grocery" = list(
     question = "🥕 Grocery stores",
@@ -181,10 +180,6 @@ question_info_list <- list(
   "same_house_pct2022" = list(
     question = "🏘️ Longtime residents",
     info = "Residents in these neighborhoods have been living here for longer."
-  ),
-  "vouchers" = list(
-    question = "🔑 Other voucher users",
-    info = "These neighborhoods have more households that also use a voucher."
   )
 )
 
@@ -277,7 +272,7 @@ server <- function(input, output, session) {
         h4("We'll start by learning what neighborhood features are important to you. 
             The following page will list some neighborhood features that are important to many people. For each feature, you'll rate how important it is to you. 
                After you've rated all the features, we'll show you neighborhoods that match your preferences."),
-        HTML('<iframe width="500" src="slider-demo.mov" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+        HTML('<iframe width="600" height="400" src="slider-demo.mov" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
         br(),
               actionButton("next_info_1", "I'm ready",  
                            class = "btn-custom")
@@ -327,7 +322,7 @@ server <- function(input, output, session) {
               You can also click 'Select All' to consider all of Philadelphia, or click 'Clear All' to start over. 
                  This will help us show you the best recommendations."),
               br(),
-        HTML('<iframe width="1200" src="neigh-select-demo.mov" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+        HTML('<iframe width="1200" height="400" src="neigh-select-demo.mov" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
               br(),
             div(
               actionButton("next_info_2", "I'm ready",
@@ -338,7 +333,7 @@ server <- function(input, output, session) {
       tagList(
         renderProgressBar(progress_percent),
               h1("Preferred Neighborhoods"),
-              h4("You can circle areas on the map or use the list below. Use the 'Select All' button to pick all neighborhoods. Use 'Clear All' to start over."),
+              h4("You can draw areas on the map or use the list below. Use the 'Select All' button to pick all neighborhoods. Use 'Clear All' to start over."),
               br(),
               actionButton("select_all", "Select All", class = "btn-custom"),
               actionButton("clear_all", "Clear All", class = "btn-custom"),
@@ -612,7 +607,7 @@ server <- function(input, output, session) {
   output$philly_map_selection <- renderLeaflet({
     req(neigh_bounds)
     leaflet(data = neigh_bounds,
-            options = leafletOptions(minZoom = 10)) %>%
+            options = leafletOptions(minZoom = 11, maxZoom = 11)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406,
               lat = 40.00761,
