@@ -12,6 +12,7 @@ library(DT)
 library(leaflet.extras)
 library(shinyWidgets)
 
+conflicts_prefer(dplyr::filter)
 conflicts_prefer(shinyjs::show)
 
 #### UI ####
@@ -64,7 +65,8 @@ nb <- st_read("panel_2024.geojson") %>%
   st_as_sf() %>%
   st_make_valid() %>%
   st_transform(crs = "EPSG:4326") %>%
-  mutate(across(starts_with("cost"), as.numeric))
+  mutate(across(starts_with("cost"), as.numeric)) %>%
+  filter(tract != 42101006500) # empty tract causes bug on final result page
 
 
 # ZIP boundaries
@@ -73,15 +75,8 @@ zip_bounds <- st_read("phl_zips_2024.geojson") %>%
   st_transform(crs = "EPSG:4326") %>%
   st_make_valid() %>%
   select(zip_code = CODE)
-# 
-# neigh_bounds <- st_read("phl_neighs_2024.geojson")%>%
-#   st_as_sf() %>%
-#   st_transform(crs = "EPSG:4326") %>%
-#   st_make_valid()
-# 
-# neigh_bounds$neighborhood <- as.character(neigh_bounds$MAPNAME)
 
-# Neighborhood lists by region
+# ZIP lists by region
 
 north_zips <- c(19121, 19122, 19133, 19132, 19140, 19141, 19120, 19126)
 
@@ -296,8 +291,6 @@ server <- function(input, output, session) {
               You have two options: you can select the places you'd like to consider by either selecting them on the menu to the left or clicking them on the map to the right. 
               You can also click 'Select All' to include the whole city, or click 'Clear All' to start over. 
                  This will help us show you the best recommendations."),
-              br(),
-            br(),
             div(
               actionButton("next_info_2", "I'm ready",
                            class = "btn-custom")
@@ -307,17 +300,16 @@ server <- function(input, output, session) {
       tagList(
         renderProgressBar(progress_percent),
               h1("Preferred Neighborhoods"),
-              h4("You can use the menu below or click on the map. Use the 'Select All' button to pick all neighborhoods. Use 'Clear All' to start over."),
-              br(),
+              h4("You can use the menu below or click on the map."),
               actionButton("select_all", "Select All", class = "btn-custom"),
               actionButton("clear_all", "Clear All", class = "btn-custom"),
             br(),
         fluidRow(
-          column(width = 3,
-                 uiOutput("region_neighborhood_selection_ui")  
+          column(width = 4,
+                 uiOutput("region_zip_selection_ui")  
           ),
-          column(width = 9,
-                 leafletOutput("philly_map_selection")     
+          column(width = 8,
+                 leafletOutput("philly_map_selection", height = "600px")     
           )
         ),
             br(),
@@ -638,32 +630,26 @@ server <- function(input, output, session) {
 
 
 # Render regions and zips with enhanced dropdown appearance
-  output$region_neighborhood_selection_ui <- renderUI({
-    
-    # Generate the UI elements
+  output$region_zip_selection_ui <- renderUI({
     lapply(names(region_list), function(region_name) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
       zip_input_id <- paste0("zips_", gsub(" ", "_", region_name))
       selected_zips <- intersect(region_list[[region_name]], preferred_zips())
       all_selected <- length(selected_zips) == length(region_list[[region_name]])
       
-      
-      tags$details(
-        class = "region-dropdown",
-        tags$summary(
-          class = "region-summary",
-          HTML(paste0("<span>", region_name, "</span><span class='dropdown-arrow'>▶</span>"))
-        ),
-        checkboxInput(region_id, label = "Select all", value = all_selected),
+      div(
+        class = "region-container",
+        checkboxInput(region_id, label = region_name, value = all_selected),
         checkboxGroupInput(
           inputId = zip_input_id,
           label = NULL,
           choices = region_list[[region_name]],
-          selected = selected_zips
+          selected = selected_zips,
+          inline = TRUE
         )
       )
     })
-})
+  })
 
   
   # Observe changes in region checkboxes to select/deselect neighborhoods
@@ -729,7 +715,7 @@ server <- function(input, output, session) {
   #### Results Page ####
   ##### Matched neighborhoods ##### 
   neighs_matched <- reactive({
-    
+  
     # Collect user preferences and map to weights
     preference_weights <- sapply(names(features), function(feature_key) {
       response <- as.numeric(input[[paste0("importance_", gsub(" ", "_", feature_key))]])
@@ -785,19 +771,14 @@ server <- function(input, output, session) {
     
     names(preference_weights) <- names(features)
     
-    preferred_zips_current <- preferred_zips()
-    # all_neighborhoods <- unique(nb$neighborhood)
-    matched_neighborhoods <- neighs_matched()$neighborhood
-
+    matched_zips <- neighs_matched()$zip_code
     
-    if (length(preferred_zips_current) == 0 || 
-        length(preferred_zips_current) == 159) {
-      # All neighborhoods are selected or none are selected
-      # Exclude the top matched neighborhoods from recommendations
-      recommended_data <- nb[!nb$neighborhood %in% matched_neighborhoods, ]
-    } else {
-      # User selected specific neighborhoods
-      recommended_data <- nb[!nb$zip_code %in% preferred_zips_current, ]
+    # Exclude only the matched ZIP codes from recommendations
+    recommended_data <- nb[!nb$zip_code %in% matched_zips, ]
+    
+    # If no neighborhoods are left, include all neighborhoods (even matched ones)
+    if (nrow(recommended_data) == 0) {
+      recommended_data <- nb
     }
     
     # Ensure all necessary feature columns are present and numeric
@@ -805,8 +786,10 @@ server <- function(input, output, session) {
     if (length(missing_features) > 0) {
       stop(paste("The following feature columns are missing in recommended_data:", paste(missing_features, collapse = ", ")))
     }
+    
     recommended_data_no_geom <- st_drop_geometry(recommended_data)
     feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
+    
     for (feature in names(features)) {
       feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
       feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
@@ -816,9 +799,15 @@ server <- function(input, output, session) {
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
     recommended_data$score <- rowMeans(weighted_features)
     
+    # Exclude the matched neighborhoods from the recommendations, if they were added back
+    if (nrow(recommended_data) > 0 && any(recommended_data$zip_code %in% matched_zips)) {
+      recommended_data <- recommended_data[!recommended_data$zip_code %in% matched_zips, ]
+    }
+    
     # Find top 5 neighborhood matches
-    recommended_data <- arrange(recommended_data, desc(score))
+    recommended_data <- recommended_data %>% arrange(desc(score))
     top_neighborhoods <- head(recommended_data, 5)
+    
     top_neighborhoods_centroids <- st_centroid(top_neighborhoods)
     top_neighborhoods_coords <- st_coordinates(top_neighborhoods_centroids)
     top_neighborhoods$lon <- top_neighborhoods_coords[, 1]
@@ -827,10 +816,39 @@ server <- function(input, output, session) {
     return(top_neighborhoods)
   })
   
+  
   ##### Result Map ##### 
   output$results_map <- renderLeaflet({
     
-    print(neighs_matched()$geometry)
+    rec_neigh <- neighs_rec()
+    matched_neigh <- neighs_matched()
+    
+    hh_size <- household_size()
+    
+    max_rent_match = case_when(
+      hh_size == 1 ~ matched_neigh$cost_1br,
+      hh_size == 2 ~ matched_neigh$cost_2br,
+      hh_size == 3 ~ matched_neigh$cost_3br,
+      hh_size == 4 ~ matched_neigh$cost_4br,
+      hh_size == 5 ~ matched_neigh$cost_5br,
+      hh_size == 6 ~ matched_neigh$cost_6br,
+      hh_size == 7 ~ matched_neigh$cost_7br,
+      hh_size == 8 ~ matched_neigh$cost_8br
+    )
+    
+    max_rent_rec = case_when(
+      hh_size == 1 ~ rec_neigh$cost_1br,
+      hh_size == 2 ~ rec_neigh$cost_2br,
+      hh_size == 3 ~ rec_neigh$cost_3br,
+      hh_size == 4 ~ rec_neigh$cost_4br,
+      hh_size == 5 ~ rec_neigh$cost_5br,
+      hh_size == 6 ~ rec_neigh$cost_6br,
+      hh_size == 7 ~ rec_neigh$cost_7br,
+      hh_size == 8 ~ rec_neigh$cost_8br
+    )
+    
+    monthly_payment_value <- monthly_payment() 
+    
     
     pal <- colorFactor(
       palette = c("darkcyan", "darkslategray"), 
@@ -839,6 +857,8 @@ server <- function(input, output, session) {
     
     req(current_question() == 7)
     monthly_payment <- monthly_payment()
+  
+    cat("Monthly payment: ", monthly_payment, "\n")
     
     # Initialize the Leaflet map
     map <- leaflet(data = nb, options = leafletOptions(minZoom = 10)) %>%
@@ -873,11 +893,13 @@ server <- function(input, output, session) {
         label = ~tract_neigh,
         popup = ~paste0("<h2>", tract_neigh, "</h2>
                 <br/>
-                <strong>Max rent:</strong> $", cost_2br,
+                <strong>ZIP Code:</strong> ", zip_code,
                         "<br/>
-                <strong>You pay:</strong> $", monthly_payment,
+                <strong>Max rent:</strong> $", max_rent_match,
                         "<br/>
-                <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
+                <strong>You pay:</strong> $", monthly_payment_value,
+                        "<br/>
+                <strong>HUD pays:</strong> $", as.numeric(max_rent_match) - as.numeric(monthly_payment_value),
                         "<br/>
                 <strong>Elementary School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", es_catchment, "</a>",
                         "<br/>
@@ -905,11 +927,13 @@ server <- function(input, output, session) {
         label = ~tract_neigh,
         popup = ~paste0("<h2>", tract_neigh, "</h2>
                 <br/>
-                <strong>Max rent:</strong> $", cost_2br,
+                <strong>ZIP Code:</strong> ", zip_code,
                         "<br/>
-                <strong>You pay:</strong> $", monthly_payment,
+                <strong>Max rent:</strong> $", max_rent_rec,
                         "<br/>
-                <strong>HUD pays:</strong> $", as.numeric(cost_2br) - as.numeric(monthly_payment),
+                <strong>You pay:</strong> $", monthly_payment_value,
+                        "<br/>
+                <strong>HUD pays:</strong> $", as.numeric(max_rent_rec) - as.numeric(monthly_payment_value),
                         "<br/>
                 <strong>Elementary School:</strong> <a href='https://philasd.explore.avela.org/' target='_blank'>", es_catchment, "</a>",
                         "<br/>
@@ -934,7 +958,7 @@ server <- function(input, output, session) {
         labelOptions = labelOptions(
           noHide = TRUE,
           direction = "top",
-          textOnly = TRUE
+          textOnly = TRUE 
         )
       ) %>%
       addLabelOnlyMarkers(
@@ -945,7 +969,7 @@ server <- function(input, output, session) {
         labelOptions = labelOptions(
           noHide = TRUE,
           direction = "top",
-          textOnly = TRUE
+          textOnly = TRUE  
         )
       ) %>%
       addLegend(
@@ -979,6 +1003,7 @@ server <- function(input, output, session) {
     # Prepare table data
     details_table <- data.frame(
       Neighborhood = matched_neigh$tract_neigh,
+      ZIP_Code = matched_neigh$zip_code,
       Max_Rent = paste0("$", formatC(max_rent, big.mark = ",")),
       HUD_Pays = paste0("$", formatC(max_rent - monthly_payment_value, big.mark = ",")),
       Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
@@ -988,16 +1013,17 @@ server <- function(input, output, session) {
     table_html <- paste(
       "<table style='width:50%; border-collapse: collapse;'>",
       "<thead><tr style='background-color: darkcyan; color: white;'>",
-      "<th>Neighborhood</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
+      "<th>Neighborhood</th><th>ZIP Code</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
       "</tr></thead>",
       "<tbody>",
       paste(
         apply(details_table, 1, function(row) {
-          paste0("<tr style='border: 1px solid lightgray; padding: 8px;'>",
+          paste0("<tr style='border: transparent; padding: 8px;'>",
                  "<td>", row[1], "</td>",
                  "<td>", row[2], "</td>",
                  "<td>", row[3], "</td>",
                  "<td>", row[4], "</td>",
+                 "<td>", row[5], "</td>",
                  "</tr>")
         }),
         collapse = ""
@@ -1038,6 +1064,7 @@ server <- function(input, output, session) {
     # Prepare table data
     details_table <- data.frame(
       Neighborhood = rec_neigh$tract_neigh,
+      ZIP_Code = rec_neigh$zip_code,
       Max_Rent = paste0("$", formatC(max_rent, big.mark = ",")),
       HUD_Pays = paste0("$", formatC(max_rent - monthly_payment_value, big.mark = ",")),
       Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
@@ -1047,16 +1074,17 @@ server <- function(input, output, session) {
     table_html <- paste(
       "<table style='width:50%; border-collapse: collapse;'>",
       "<thead><tr style='background-color: darkcyan; color: white;'>",
-      "<th>Neighborhood</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
+      "<th>Neighborhood</th><th>ZIP Code</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
       "</tr></thead>",
       "<tbody>",
       paste(
         apply(details_table, 1, function(row) {
-          paste0("<tr style='border: 1px solid lightgray; padding: 8px;'>",
+          paste0("<tr style='border: transparent; padding: 8px;'>",
                  "<td>", row[1], "</td>",
                  "<td>", row[2], "</td>",
                  "<td>", row[3], "</td>",
                  "<td>", row[4], "</td>",
+                 "<td>", row[5], "</td>",
                  "</tr>")
         }),
         collapse = ""

@@ -123,45 +123,6 @@ p#question-info {
   max-width: 60ch;
 }
 
-.neighborhood-checkbox {
-  margin-left: 20px;
-}
-
-.region-dropdown {
-  margin-bottom: 10px;
-}
-
-.region-summary {
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.region-summary:hover {
-  background-color: #f0f0f0;
-}
-
-.region-summary .dropdown-arrow {
-  margin-left: 10px;
-  transition: transform 0.3s;
-}
-
-.region-dropdown[open] .dropdown-arrow {
-  transform: rotate(90deg);
-}
-
-div.checkbox {
-  text-align: left;
-}
-
-.region-dropdown {
-  align-content: left;
-  justify-content: left;
-}
-
 .selection-buttons {
   margin-top: 20px;
 }
@@ -200,4 +161,8 @@ table tr:nth-child(even) {
 
 input[type="number"] {
   max-width: 80%;
+}
+
+.checkbox label {
+  font-weight: bold;
 }
