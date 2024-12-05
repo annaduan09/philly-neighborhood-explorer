@@ -60,34 +60,77 @@ nb <- st_read("panel_2024.geojson") %>%
   filter(tract != 42101006500) # empty tract causes bug on final result page
 
 
-# ZIP boundaries
-zip_bounds <- st_read("phl_zips_2024.geojson") %>%
+# Neighborhood boundaries
+neigh_bounds <- st_read("phl_neighs_2024.geojson") %>%
   st_as_sf() %>%
   st_transform(crs = "EPSG:4326") %>%
   st_make_valid() %>%
-  select(zip_code = CODE)
+  mutate(neighborhood = as.character(neigh_bounds$MAPNAME))
 
-# ZIP lists by region
-north_zips <- c(19121, 19122, 19133, 19132, 19140, 19141, 19120, 19126)
-northwest_zips <- c(19131, 19129, 19127, 19128, 19118, 19119, 19144, 19138, 19150)
-northeast_zips <- c(19125, 19134, 19137, 19124)
-far_northeast_zips <- c(19135, 19149, 19111, 19152, 19136, 19114, 19115, 19116, 19154)
-west_zips <- c(19151, 19139, 19104)
-center_city_zips <- c(19130, 19123, 19103, 19102, 19107, 19106)
-south_zips <- c(19146, 19147, 19145, 19148, 19112)
-southwest_zips <- c(19143, 19142, 19153)
+# ZIP centroids
+zip_centroids <- st_read("phl_zips_2024.geojson") %>%
+  st_centroid() %>%
+  st_transform(crs = "EPSG:4326") %>%
+  st_make_valid()
+
+# neighborhood lists by region
+north_neighborhoods <- c("Juniata Park", "Northwood", "Upper Kensington", 
+                         "Hunting Park", "Nicetown", "Tioga", "Ludlow", "Fairhill",
+                         "Feltonville", "Logan", "Spring Garden", "Fairmount",
+                         "North Central", "Franklinville", "West Kensington", "Hartranft",
+                         "Brewerytown", "Northern Liberties", "Strawberry Mansion",
+                         "Allegheny West", "Olney", "Stanton", "Glenwood", "McGuire", "Yorktown",
+                         "Melrose Park Gardens", "Ogontz", "Fern Rock", "East Poplar",
+                         "Francisville", "Sharswood", "Old Kensington", "West Poplar")
+
+northwest_neighborhoods <- c("West Oak Lane", "East Oak Lane", "Chestnut Hill",
+                             "East Germantown", "Southwest Germantown", "Roxborough",
+                             "Manayunk", "West Mount Airy", "East Mount Airy", "Andorra",
+                             "Cedarbrook", "East Falls", "Wissahickon", "Germany Hill",
+                             "East Park", "Dearnley Park", "Upper Roxborough", "West Central Germantown",
+                             "Germantown - Westside", "Germantown - Penn Knox", "Wister",
+                             "Germantown - Morton", "Wissahickon Park", "Roxborough Park", 
+                             "Wissahickon Hills", "Blue Bell Hill", "West Park")
+
+northeast_neighborhoods <- c("Mayfair", "Tacony", "Holmesburg", "Fox Chase",
+                             "Bustleton", "Somerton", "Oxford Circle", "Rhawnhurst",
+                             "Bridesburg", "Fishtown - Lower Kensington",
+                             "East Kensington", "Crescentville", "Riverfront", "Lawndale", "Modena",
+                             "Millbrook", "Wissinoming", "Franklin Mills", "Parkwood Manor", "Byberry",
+                             "Burholme", "Lexington Park", "Pennypack", "Academy Gardens", "Morrell Park",
+                             "Pennypack Woods", "Aston-Woodbridge", "Torresdale", "Northeast Phila Airport",
+                             "Normandy Village", "Harrowgate", "Richmond", "Frankford", "Pennypack Park",
+                             "Winchester Park", "West Torresdale", "Crestmont Farms", "Port Richmond",
+                             "Summerdale", "Mechanicsville")
+
+west_neighborhoods <- c("University City", "Wynnefield", "Overbrook", "Carroll Park", 
+                        "Cobbs Creek", "Walnut Hill", "Spruce Hill", "Southwest Schuylkill",
+                        "Wynnefield Heights", "East Parkside", "West Parkside", "Belmont", "Mantua",
+                        "Haverford North", "Woodland Terrace", "Cedar Park", "Powelton", "West Powelton",
+                        "Dunlap", "Haddington", "Mill Creek", "Garden Court")
+
+center_city_neighborhoods <- c("Rittenhouse", "Logan Square", "Chinatown", "Callowhill",
+                               "Society Hill", "Washington Square West", "Old City", "Graduate Hospital",
+                               "Center City East", "Fitler Square")
+
+south_neighborhoods <- c("Point Breeze", "Girard Estates", "Passyunk Square",
+                         "Whitman", "Lower Moyamensing", "Packer Park", "Stadium District",
+                         "Airport", "Navy Yard", "Bartram Village", "Industrial", "Dickinson Narrows",
+                         "Pennsport", "Newbold", "East Passyunk", "Queen Village", "Hawthorne",
+                         "Bella Vista", "West Passyunk", "Greenwich")
+
+southwest_neighborhoods <- c("Kingsessing", "Elmwood", "Eastwick", "Penrose", "Paschall", "Grays Ferry",
+                             "Clearview")
 
 # List of regions
 region_list <- list(
-  "North" = north_zips,
-  "Northwest" = northwest_zips,
-  "Northeast" = northeast_zips,
-  "Far Northeast" = far_northeast_zips,
-  "West" = west_zips,
-  "Center City" = center_city_zips,
-  "South" = south_zips,
-  "Southwest" = southwest_zips
-)
+  "North" = north_neighborhoods,
+  "Northwest" = northwest_neighborhoods,
+  "Northeast" = northeast_neighborhoods,
+  "West" = west_neighborhoods,
+  "Center City" = center_city_neighborhoods,
+  "South" = south_neighborhoods,
+  "Southwest" = southwest_neighborhoods)
 
 # Neighborhood features
 features <- c(
@@ -136,7 +179,7 @@ server <- function(input, output, session) {
   })
   
   total_steps <- 6
-  preferred_zips <- reactiveVal(numeric())
+  preferred_neighborhoods <- reactiveVal(character())
   household_size <- reactiveVal(NULL)
   annual_income <- reactiveVal(NULL)
   
@@ -155,7 +198,7 @@ server <- function(input, output, session) {
   matched_5_neighs <- reactiveVal(NULL)
   
   # Prevent infinite loops
-  update_in_progress <- reactiveValues(region = FALSE, zip = FALSE)
+  update_in_progress <- reactiveValues(region = FALSE, neighborhood = FALSE)
   
   ##### Start App #####
   observeEvent(input$start_button, {
@@ -165,11 +208,12 @@ server <- function(input, output, session) {
   })
   
   renderPreferredList <- function() {
-    zips <- preferred_zips()
-    if (length(zips) == 0) {
-      return(p("No zips selected yet."))
+    cat("Rendering preferred list\n")
+    neighborhoods <- preferred_neighborhoods()
+    if (length(neighborhoods) == 0) {
+      return(p("No neighborhoods selected yet."))
     } else {
-      return(div(class = "preferred-list", lapply(zips, function(nbh) {
+      return(div(class = "preferred-list", lapply(neighborhoods, function(nbh) {
         div(class = "preferred-item",
             span(nbh),
             actionButton(paste0("remove_", gsub(" ", "_", nbh)), "Remove", icon = icon("trash")))
@@ -178,6 +222,7 @@ server <- function(input, output, session) {
   }
   
   renderRecommendedList <- function(neighborhoods) {
+    cat("Rendering recommended list\n")
     if (length(neighborhoods) == 0) {
       return(p("No areas match your preferences."))
     } else {
@@ -263,7 +308,7 @@ server <- function(input, output, session) {
         actionButton("clear_all", "Clear All", class = "btn-custom"),
         br(),
         fluidRow(
-          column(width = 4, uiOutput("region_zip_selection_ui")),
+          column(width = 4, uiOutput("region_neighborhood_selection_ui")),
           column(
             width = 8,
             leafletOutput("philly_map_selection", height = "600px")
@@ -511,7 +556,7 @@ server <- function(input, output, session) {
     current_question(1)
     show("welcome_panel")
     hide("main_content")
-    preferred_zips(c())
+    preferred_neighborhoods(c())
     household_size(NULL)
     annual_income(NULL)
   })
@@ -520,13 +565,13 @@ server <- function(input, output, session) {
   
   # Select All
   observeEvent(input$select_all, {
-    all_zips <- unlist(region_list)
-    preferred_zips(all_zips)
+    all_neighborhoods <- unlist(region_list)
+    preferred_neighborhoods(all_neighborhoods)
     
     # Update each region's checkbox group input
     lapply(names(region_list), function(region_name) {
-      zip_input_id <- paste0("zips_", gsub(" ", "_", region_name))
-      updateCheckboxGroupInput(session, zip_input_id, selected = region_list[[region_name]])
+      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
+      updateCheckboxGroupInput(session, neighborhood_input_id, selected = region_list[[region_name]])
     })
     
     # Update the "Select All" checkboxes for each region
@@ -534,17 +579,17 @@ server <- function(input, output, session) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
       updateCheckboxInput(session, region_id, value = TRUE)
     })
-    showNotification("All ZIP codes have been selected.", type = "message")
+    showNotification("All neighborhoods have been selected.", type = "message")
   })
   
   # Clear All Selections
   observeEvent(input$clear_all, {
-    preferred_zips(character())  # Clear all preferred neighborhoods
+    preferred_neighborhoods(character())  # Clear all preferred neighborhoods
     
     # Clear checkboxes for each region
     lapply(names(region_list), function(region_name) {
-      zip_input_id <- paste0("zips_", gsub(" ", "_", region_name))
-      updateCheckboxGroupInput(session, zip_input_id, selected = character(0))  # Clear all checkboxes
+      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
+      updateCheckboxGroupInput(session, neighborhood_input_id, selected = character(0))  # Clear all checkboxes
     })
     
     # Reset the "Select All" checkboxes for each region
@@ -553,13 +598,14 @@ server <- function(input, output, session) {
       updateCheckboxInput(session, region_id, value = FALSE)
     })
     
-    showNotification("All selected ZIP codes have been cleared.", type = "message")
+    showNotification("All selected areas have been cleared.", type = "message")
   })
   
   # Neighborhood selection leaflet map
   output$philly_map_selection <- renderLeaflet({
-    req(zip_bounds)
-    leaflet(data = zip_bounds,
+    cat("Rendering map for neighborhood selection...\n")
+    req(neigh_bounds)
+    leaflet(data = neigh_bounds,
             options = leafletOptions(minZoom = 11, maxZoom = 11)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406,
@@ -572,48 +618,65 @@ server <- function(input, output, session) {
         lat2 = 40.13799
       ) %>%
       addPolygons(
-        group = 'zips',
-        layerId = ~ zip_code,
-        fillColor = ~ ifelse(zip_code %in% preferred_zips(), "cyan3", "darkcyan"),
+        group = 'neighborhoods',
+        layerId = ~neighborhood,
+        fillColor = ~ ifelse(neighborhood %in% preferred_neighborhoods(), "cyan3", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
-        label = ~ zip_code,
+        label = ~neighborhood,
         highlight = highlightOptions(
           weight = 2,
           color = "#666",
           fillOpacity = 0.7
         )
+      ) %>%
+      addLabelOnlyMarkers(
+        data = zip_centroids,
+        label = ~CODE,
+        labelOptions = labelOptions(
+          noHide = TRUE,
+          textOnly = TRUE,
+          direction = "auto",
+          style = list(
+            "font-weight" = "bold",
+            "color" = "white",
+            "font-size" = "12px",
+            "opacity" = "0.5"
+          )
+        ),
+        group = 'zip_labels'
       )
   })
   
   observeEvent(input$philly_map_selection_shape_click, {
     click <- input$philly_map_selection_shape_click
-    clicked_zip <- click$id
+    clicked_neighborhood <- click$id
     
-    current_preferences <- preferred_zips()
+    current_preferences <- preferred_neighborhoods()
     
-    if (clicked_zip %in% current_preferences) {
-      new_preferences <- setdiff(current_preferences, clicked_zip)
+    if (clicked_neighborhood %in% current_preferences) {
+      new_preferences <- setdiff(current_preferences, clicked_neighborhood)
     } else {
-      new_preferences <- c(current_preferences, clicked_zip)
+      new_preferences <- c(current_preferences, clicked_neighborhood)
     }
-    preferred_zips(new_preferences)
+    preferred_neighborhoods(new_preferences)
   })
   
   # Update the map when preferences change
-  observeEvent(preferred_zips(), {
+  observeEvent(preferred_neighborhoods(), {
+    cat("Updating map for neighborhood selection...\n")
     leafletProxy("philly_map_selection") %>%
-      clearGroup('zips') %>%
+      clearGroup('neighborhoods') %>%
       addPolygons(
-        data = zip_bounds,
-        group = 'zips',
-        layerId = ~ zip_code,
-        fillColor = ~ ifelse(zip_code %in% preferred_zips(), "cyan3", "darkcyan"),
+        data = neigh_bounds,
+        group = 'neighborhoods',
+        layerId = ~ neighborhood,
+        fillColor = ~ ifelse(neighborhood %in% preferred_neighborhoods(), "cyan3", "darkcyan"),
         color = "white",
         weight = 1,
         fillOpacity = 0.5,
-        label = ~ zip_code,
+        label = ~ neighborhood,
         highlight = highlightOptions(
           weight = 2,
           color = "#666",
@@ -623,22 +686,22 @@ server <- function(input, output, session) {
   })
   
   
-  # Render regions and zips with enhanced dropdown appearance
-  output$region_zip_selection_ui <- renderUI({
+  # Render regions and neighborhoods with enhanced dropdown appearance
+  output$region_neighborhood_selection_ui <- renderUI({
     lapply(names(region_list), function(region_name) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
-      zip_input_id <- paste0("zips_", gsub(" ", "_", region_name))
-      selected_zips <- intersect(region_list[[region_name]], preferred_zips())
-      all_selected <- length(selected_zips) == length(region_list[[region_name]])
+      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
+      selected_neighborhoods <- intersect(region_list[[region_name]], preferred_neighborhoods())
+      all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
       
       div(
         class = "region-container",
         checkboxInput(region_id, label = region_name, value = all_selected),
         checkboxGroupInput(
-          inputId = zip_input_id,
+          inputId = neighborhood_input_id,
           label = NULL,
           choices = region_list[[region_name]],
-          selected = selected_zips,
+          selected = selected_neighborhoods,
           inline = TRUE
         )
       )
@@ -649,10 +712,10 @@ server <- function(input, output, session) {
   # Observe changes in region checkboxes to select/deselect neighborhoods
   lapply(names(region_list), function(region_name) {
     region_id <- paste0("region_", gsub(" ", "_", region_name))
-    zip_input_id <- paste0("zips_", gsub(" ", "_", region_name))
+    neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
     
     observeEvent(input[[region_id]], {
-      if (update_in_progress$zip)
+      if (update_in_progress$neighborhood)
         return()
       update_in_progress$region <- TRUE
       
@@ -663,49 +726,49 @@ server <- function(input, output, session) {
         character(0)
       
       # Update the neighborhood checkboxes
-      updateCheckboxGroupInput(session, zip_input_id, selected = selected)
+      updateCheckboxGroupInput(session, neighborhood_input_id, selected = selected)
       update_in_progress$region <- FALSE
     }, ignoreInit = TRUE)
   })
   
   # Update region checkboxes when neighborhood selections change
   lapply(names(region_list), function(region_name) {
-    zip_input_id <- paste0("zips_", gsub(" ", "_", region_name))
+    neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
     region_id <- paste0("region_", gsub(" ", "_", region_name))
     
-    observeEvent(input[[zip_input_id]], {
+    observeEvent(input[[neighborhood_input_id]], {
       if (update_in_progress$region)
         return()
-      update_in_progress$zip <- TRUE
+      update_in_progress$neighborhood <- TRUE
       
       # Get selected neighborhoods
-      selected_zips <- input[[zip_input_id]]
+      selected_neighborhoods <- input[[neighborhood_input_id]]
       
       # Check if all neighborhoods in the region are selected
-      all_selected <- length(selected_zips) == length(region_list[[region_name]])
+      all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
       
       # Update the "Select all" checkbox based on whether all neighborhoods are selected
       updateCheckboxInput(session, region_id, value = all_selected)
       
       # Update preferred neighborhoods
-      zips <- unlist(lapply(names(region_list), function(r_name) {
-        n_input_id <- paste0("zips_", gsub(" ", "_", r_name))
+      neighborhoods <- unlist(lapply(names(region_list), function(r_name) {
+        n_input_id <- paste0("neighborhoods_", gsub(" ", "_", r_name))
         input[[n_input_id]]
       }))
       
-      preferred_zips(unique(zips))
-      update_in_progress$zip <- FALSE
+      preferred_neighborhoods(unique(neighborhoods))
+      update_in_progress$neighborhood <- FALSE
     }, ignoreInit = TRUE)
   })
   
   
   # Synchronize list selections with preferences
-  observeEvent(preferred_zips(), {
+  observeEvent(preferred_neighborhoods(), {
     lapply(names(region_list), function(region_name) {
-      zip_input_id <- paste0("zips_", gsub(" ", "_", region_name))
-      selected_zips <- intersect(region_list[[region_name]], preferred_zips())
-      all_selected <- length(selected_zips) == length(region_list[[region_name]])
-      updateCheckboxGroupInput(session, zip_input_id, selected = selected_zips)
+      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
+      selected_neighborhoods <- intersect(region_list[[region_name]], preferred_neighborhoods())
+      all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
+      updateCheckboxGroupInput(session, neighborhood_input_id, selected = selected_neighborhoods)
       updateCheckboxInput(session, paste0("region_", gsub(" ", "_", region_name)), value = all_selected)
     })
   })
@@ -721,10 +784,10 @@ server <- function(input, output, session) {
     
     names(preference_weights) <- names(features)
     
-    preferred_zips_current <- preferred_zips()
+    preferred_neighborhoods_current <- preferred_neighborhoods()
     
-    if (length(preferred_zips_current) > 0) {
-      recommended_data <- nb[nb$zip_code %in% preferred_zips_current, ]
+    if (length(preferred_neighborhoods_current) > 0) {
+      recommended_data <- nb[nb$neighborhood %in% preferred_neighborhoods_current, ]
     } else {
       recommended_data <- nb
     }
@@ -770,10 +833,10 @@ server <- function(input, output, session) {
     
     names(preference_weights) <- names(features)
     
-    matched_zips <- neighs_matched()$zip_code
+    matched_neighborhoods <- neighs_matched()$neighborhood
     
-    # Exclude only the matched ZIP codes from recommendations
-    recommended_data <- nb[!nb$zip_code %in% matched_zips, ]
+    # Exclude only the matched neighborhoods from recommendations
+    recommended_data <- nb[!nb$neighborhood %in% matched_neighborhoods, ]
     
     # If no neighborhoods are left, include all neighborhoods (even matched ones)
     if (nrow(recommended_data) == 0) {
@@ -803,8 +866,8 @@ server <- function(input, output, session) {
     
     # Exclude the matched neighborhoods from the recommendations, if they were added back
     if (nrow(recommended_data) > 0 &&
-        any(recommended_data$zip_code %in% matched_zips)) {
-      recommended_data <- recommended_data[!recommended_data$zip_code %in% matched_zips, ]
+        any(recommended_data$neighborhood %in% matched_neighborhoods)) {
+      recommended_data <- recommended_data[!recommended_data$neighborhood %in% matched_neighborhoods, ]
     }
     
     # Find top 5 neighborhood matches
@@ -898,8 +961,8 @@ server <- function(input, output, session) {
           tract_neigh,
           "</h2>
                 <br/>
-                <strong>ZIP Code:</strong> ",
-          zip_code,
+                <strong>Neighborhood:</strong> ",
+          neighborhood,
           "<br/>
                 <strong>Max rent:</strong> $",
           max_rent_match,
@@ -948,8 +1011,8 @@ server <- function(input, output, session) {
           tract_neigh,
           "</h2>
                 <br/>
-                <strong>ZIP Code:</strong> ",
-          zip_code,
+                <strong>Neighborhood:</strong> ",
+          neighborhood,
           "<br/>
                 <strong>Max rent:</strong> $",
           max_rent_rec,
@@ -1014,7 +1077,7 @@ server <- function(input, output, session) {
     map
   })
   
-  #### Data table for Neighborhood Details ####
+  #### Data tables for Neighborhood Details ####
   ##### Matched #####
   output$neighborhood_details_table <- renderUI({
     matched_neigh <- neighs_matched()
