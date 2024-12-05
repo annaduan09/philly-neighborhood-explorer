@@ -57,7 +57,7 @@ nb <- st_read("panel_2024.geojson") %>%
   st_make_valid() %>%
   st_transform(crs = "EPSG:4326") %>%
   mutate(across(starts_with("cost"), as.numeric)) %>%
-  filter(tract != 42101006500) # empty tract causes bug on final result page
+  filter(tract != 42101006500) 
 
 
 # Neighborhood boundaries
@@ -65,7 +65,7 @@ neigh_bounds <- st_read("phl_neighs_2024.geojson") %>%
   st_as_sf() %>%
   st_transform(crs = "EPSG:4326") %>%
   st_make_valid() %>%
-  mutate(neighborhood = as.character(neigh_bounds$MAPNAME))
+  mutate(neighborhood = as.character(MAPNAME))
 
 # ZIP centroids
 zip_centroids <- st_read("phl_zips_2024.geojson") %>%
@@ -606,11 +606,11 @@ server <- function(input, output, session) {
     cat("Rendering map for neighborhood selection...\n")
     req(neigh_bounds)
     leaflet(data = neigh_bounds,
-            options = leafletOptions(minZoom = 11, maxZoom = 11)) %>%
+            options = leafletOptions(minZoom = 11, maxZoom = 12)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406,
               lat = 40.00761,
-              zoom = 11) %>%
+              zoom = 12) %>%
       setMaxBounds(
         lng1 = -75.28027,
         lat1 = 39.867,
@@ -640,8 +640,8 @@ server <- function(input, output, session) {
           direction = "auto",
           style = list(
             "font-weight" = "bold",
-            "color" = "white",
-            "font-size" = "12px",
+            "color" = "black",
+            "font-size" = "10px",
             "opacity" = "0.5"
           )
         ),

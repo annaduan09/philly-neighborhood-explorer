@@ -50,9 +50,6 @@ h1, h2, h3 {
   font-weight: 700;
 }
 
-#region_neighborhood_selection_ui span {
-  font-weight: 200;
-}
 
 p {
   line-height: 1.5;   
@@ -165,4 +162,5 @@ input[type="number"] {
 
 .checkbox label {
   font-weight: bold;
+  font-size: 20px;
 }
