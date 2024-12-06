@@ -455,63 +455,48 @@ server <- function(input, output, session) {
     household_size(NULL)
     annual_income(NULL)
   })
-  
   #### Neighborhood Selection Logic ####
-  # This section manages how neighborhoods are selected and deselected.
-  # - "Select All" selects all neighborhoods citywide.
-  # - "Clear All" clears all selections.
-  # - Each region has a "select all" checkbox controlling all neighborhoods in that region.
-  # - Individual neighborhood checkboxes allow fine-grained selection.
-  # - The logic ensures that when the user deselects one neighborhood (after "select all"), 
-  #   it doesn't clear the entire region or city. Instead, we rebuild the preferred list from all current selections.
-  #
-  # Key points:
-  # - preferred_neighborhoods() holds the current selection of neighborhoods.
-  # - We always reconstruct preferred_neighborhoods by reading all currently selected neighborhoods from the UI.
-  # - This prevents unintended bulk removals and ensures stable incremental updates.
+  # Principles:
+  # - The UI (checklists + map) is the single source of truth.
+  # - preferred_neighborhoods() is updated from the UI after any user action.
+  # - No looping updates: we do not push changes back into the UI from observers,
+  #   except at the initial citywide/region actions. The renderUI output always reflects
+  #   the current state of preferred_neighborhoods().
+  # - "Select All" and "Clear All" act once, then rely on UI re-rendering to show correct states.
+  # - Region toggling sets that region's neighborhoods directly, then we rebuild preferred_neighborhoods().
+  # - Neighborhood toggling just rebuilds preferred_neighborhoods() from the UI; no region checkbox updates here.
+  # - Map toggling updates preferred_neighborhoods() and relies on UI re-render.
   
   observeEvent(input$select_all, {
-    # User clicked "Select All" citywide: select every neighborhood.
-    all_neighborhoods <- unlist(region_list)
-    preferred_neighborhoods(all_neighborhoods)
-    
-    # Update each region's checkbox group to show all neighborhoods as selected
+    # Select all neighborhoods citywide
     lapply(names(region_list), function(region_name) {
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       updateCheckboxGroupInput(session, neighborhood_input_id, selected = region_list[[region_name]])
     })
     
-    # Mark all region-level "Select All" checkboxes as TRUE
-    lapply(names(region_list), function(region_name) {
-      region_id <- paste0("region_", gsub(" ", "_", region_name))
-      updateCheckboxInput(session, region_id, value = TRUE)
-    })
+    # Rebuild preferred_neighborhoods from UI
+    all_current_selections <- unlist(lapply(names(region_list), function(r_name) {
+      input[[paste0("neighborhoods_", gsub(" ", "_", r_name))]]
+    }))
+    preferred_neighborhoods(unique(all_current_selections))
     
     showNotification("All neighborhoods have been selected.", type = "message")
   })
   
   observeEvent(input$clear_all, {
-    # User clicked "Clear All": remove all neighborhoods from preferred selection.
+    # Clear all selections
     preferred_neighborhoods(character())
     
-    # Clear out all checkbox group inputs
+    # Clear all neighborhood checkboxes
     lapply(names(region_list), function(region_name) {
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       updateCheckboxGroupInput(session, neighborhood_input_id, selected = character(0))
-    })
-    
-    # Reset all region-level checkboxes to FALSE
-    lapply(names(region_list), function(region_name) {
-      region_id <- paste0("region_", gsub(" ", "_", region_name))
-      updateCheckboxInput(session, region_id, value = FALSE)
     })
     
     showNotification("All selected areas have been cleared.", type = "message")
   })
   
   output$philly_map_selection <- renderLeaflet({
-    # Renders the neighborhood map.
-    # Neighborhoods are colored differently if they are in the preferred selection.
     leaflet(data = neigh_bounds) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406, lat = 40.00761, zoom = 12) %>%
@@ -530,8 +515,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$philly_map_selection_shape_click, {
-    # Allows toggling a neighborhood by clicking it on the map.
-    # If already selected, remove it; if not selected, add it.
+    # Toggle neighborhood from map click
     clicked_neighborhood <- input$philly_map_selection_shape_click$id
     current_preferences <- preferred_neighborhoods()
     
@@ -540,24 +524,28 @@ server <- function(input, output, session) {
     } else {
       new_preferences <- c(current_preferences, clicked_neighborhood)
     }
+    
     preferred_neighborhoods(new_preferences)
   })
   
   output$region_neighborhood_selection_ui <- renderUI({
-    # Dynamically generates UI for each region: a "Select All" checkbox and a set of checkboxes for each neighborhood.
+    # The UI is rendered based on preferred_neighborhoods(). This ensures that
+    # region-level "Select All" checkboxes are always correct. If all neighborhoods
+    # in a region are selected, that region checkbox is TRUE, otherwise FALSE.
+    
+    # Because we reference preferred_neighborhoods() here, any change to it triggers a re-render.
+    
     lapply(names(region_list), function(region_name) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       
-      # Determine which neighborhoods are currently selected for this region
+      # Determine which neighborhoods are currently selected
       selected_neighborhoods <- intersect(region_list[[region_name]], preferred_neighborhoods())
       all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
       
       div(
         class = "region-container",
-        # Region-level "Select All" checkbox
         checkboxInput(region_id, label = region_name, value = all_selected),
-        # Individual neighborhood checkboxes for this region
         checkboxGroupInput(
           inputId = neighborhood_input_id,
           label = NULL,
@@ -569,75 +557,40 @@ server <- function(input, output, session) {
     })
   })
   
-  # Observers for region-level "Select All"
-  lapply(names(region_list), function(region_name) {
-    region_id <- paste0("region_", gsub(" ", "_", region_name))
-    
-    observeEvent(input[[region_id]], {
-      current_preferences <- preferred_neighborhoods()
-      region_neighs <- region_list[[region_name]]
-      selected_in_region <- intersect(region_neighs, current_preferences)
-      
-      if (isTRUE(input[[region_id]])) {
-        # Region-level box checked: add all neighborhoods of this region
-        preferred_neighborhoods(unique(c(current_preferences, region_neighs)))
-      } else {
-        # Region-level box unchecked:
-        # Check if all neighborhoods in this region are currently selected
-        if (length(selected_in_region) == length(region_neighs)) {
-          # All were selected, now user unchecks region-level: remove them all
-          preferred_neighborhoods(setdiff(current_preferences, region_neighs))
-        } else {
-          # Some were already unchecked; do nothing
-          # (No mass removal is performed)
-        }
-      }
-    }, ignoreInit = TRUE)
-  })
-  
-  
-  # Observers for individual neighborhood checkboxes within each region
+  # Region-level "Select All"
   lapply(names(region_list), function(region_name) {
     region_id <- paste0("region_", gsub(" ", "_", region_name))
     neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
     
-    observeEvent(input[[neighborhood_input_id]], {
-      # When any neighborhood selection changes, we rebuild the entire preferred list
-      # from all currently selected neighborhoods across all regions.
+    observeEvent(input[[region_id]], {
+      # User toggled region-level checkbox
+      # Set or clear that region's neighborhoods accordingly
+      updateCheckboxGroupInput(session, neighborhood_input_id,
+                               selected = if (isTRUE(input[[region_id]])) region_list[[region_name]] else character(0)
+      )
       
-      # Gather all currently selected neighborhoods across all regions
+      # Rebuild preferred_neighborhoods from full UI state
       all_current_selections <- unlist(lapply(names(region_list), function(r_name) {
-        n_input_id <- paste0("neighborhoods_", gsub(" ", "_", r_name))
-        input[[n_input_id]]
+        input[[paste0("neighborhoods_", gsub(" ", "_", r_name))]]
       }))
-      
-      # Update preferred_neighborhoods with the combined selection
       preferred_neighborhoods(unique(all_current_selections))
-      
-      # Update this region's "Select All" checkbox based on whether all are selected
-      selected_neighborhoods <- input[[neighborhood_input_id]]
-      all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
-      updateCheckboxInput(session, region_id, value = all_selected)
     }, ignoreInit = TRUE)
   })
   
-  observeEvent(preferred_neighborhoods(), {
-    # Whenever preferred_neighborhoods changes, we synchronize the UI to match.
-    # This ensures consistency: if we deselect a neighborhood through the map or another interface,
-    # the checkbox groups and region checkboxes remain up-to-date.
-    lapply(names(region_list), function(region_name) {
-      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
-      selected_neighborhoods <- intersect(region_list[[region_name]], preferred_neighborhoods())
-      
-      # Update checkbox group input for this region
-      updateCheckboxGroupInput(session, neighborhood_input_id, selected = selected_neighborhoods)
-      
-      # Update the region-level "Select All" checkbox
-      region_id <- paste0("region_", gsub(" ", "_", region_name))
-      all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
-      updateCheckboxInput(session, region_id, value = all_selected)
-    })
+  # Individual neighborhood checkboxes
+  lapply(names(region_list), function(region_name) {
+    neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
+    
+    observeEvent(input[[neighborhood_input_id]], {
+      # On any neighborhood change, rebuild preferred_neighborhoods from entire UI
+      all_current_selections <- unlist(lapply(names(region_list), function(r_name) {
+        input[[paste0("neighborhoods_", gsub(" ", "_", r_name))]]
+      }))
+      preferred_neighborhoods(unique(all_current_selections))
+      # No direct region checkbox updates here; rely on renderUI re-render
+    }, ignoreInit = TRUE)
   })
+  
   
   #### Matched Neighborhoods Logic ####
   # The following reactive expression (neighs_matched) identifies the top neighborhoods that
