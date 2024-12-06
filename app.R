@@ -17,9 +17,6 @@ conflicts_prefer(shinyjs::show)
 
 #### UI ####
 # Defines the overall layout and visual elements of the application.
-# Key Inputs: User interaction with buttons, sliders, and selections.
-# Key Outputs: Display panels, maps, and navigational steps guiding the user.
-
 ui <- fluidPage(
   useShinyjs(),
   tags$head(
@@ -49,9 +46,6 @@ ui <- fluidPage(
 )
 
 #### DATA ####
-# Loads and prepares spatial and attribute data about neighborhoods, ZIP codes, and related features.
-# These datasets form the foundation for filtering, scoring, and visualizing neighborhoods.
-
 nb <- st_read("panel_2024.geojson") %>%
   mutate(across(where(is.numeric), ~ replace_na(., 0))) %>%
   st_as_sf() %>%
@@ -71,7 +65,11 @@ zip_centroids <- st_read("phl_zips_2024.geojson") %>%
   st_transform(crs = "EPSG:4326") %>%
   st_make_valid()
 
+# Compute median vouchers
+vouchers_median <- median(nb$vouchers, na.rm = TRUE)
+
 # Define neighborhoods by region
+# (unchanged definitions)
 north_neighborhoods <- c("Juniata Park", "Northwood", "Upper Kensington", "Hunting Park", "Nicetown", "Tioga", "Ludlow", "Fairhill",
                          "Feltonville", "Logan", "Spring Garden", "Fairmount", "North Central", "Franklinville", "West Kensington", "Hartranft",
                          "Brewerytown", "Northern Liberties", "Strawberry Mansion", "Allegheny West", "Olney", "Stanton", "Glenwood", "McGuire", "Yorktown",
@@ -136,8 +134,6 @@ question_info_list <- list(
 )
 
 #### FUNCTIONS ####
-# Contains utility functions for reusability and clarity.
-# Key Function: renderProgressBar() - Displays a progress bar reflecting the user's progress through the application.
 renderProgressBar <- function(percent) {
   tags$div(
     class = "progress",
@@ -153,14 +149,6 @@ renderProgressBar <- function(percent) {
 }
 
 #### SERVER ####
-# Coordinates server-side logic including:
-# - Handling user interactions and selections
-# - Performing data filtering and scoring based on user preferences
-# - Updating UI elements, maps, and tables as inputs change
-# Key Inputs: User feature importance scores, chosen neighborhoods, household size, and income.
-# Key Outputs: Ranked and filtered neighborhoods, updated map visualizations, and recommended lists.
-# Key Functions: Reactive expressions to compute scores, observers to synchronize UI, and render functions for output elements.
-
 server <- function(input, output, session) {
   current_question <- reactiveVal(1)
   observe({ cat("Current question is:", current_question(), "\n") })
@@ -182,6 +170,7 @@ server <- function(input, output, session) {
   )
   
   matched_5_neighs <- reactiveVal(NULL)
+  
   update_in_progress <- reactiveValues(region = FALSE, neighborhood = FALSE)
   
   observeEvent(input$start_button, {
@@ -276,8 +265,8 @@ server <- function(input, output, session) {
         actionButton("clear_all", "Clear All", class = "btn-custom"),
         br(),
         fluidRow(
-          column(width = 4, uiOutput("region_neighborhood_selection_ui")),
-          column(width = 8, leafletOutput("philly_map_selection", height = "600px"))
+          column(width = 6, uiOutput("region_neighborhood_selection_ui")),
+          column(width = 6, leafletOutput("philly_map_selection", height = "900px"))
         ),
         br(),
         div(
@@ -401,7 +390,7 @@ server <- function(input, output, session) {
     if (is.null(input$household_size) || input$household_size < 1) {
       showModal(modalDialog(
         title = "Input Required",
-        "Please enter a valid number of people.",
+        "Please enter a valid number of people living in the unit.",
         easyClose = TRUE,
         footer = NULL
       ))
@@ -427,6 +416,7 @@ server <- function(input, output, session) {
       household_size_val <- household_size()
       annual_income_val <- input$annual_income
       max_income <- income_limits[as.character(household_size_val)]
+      
       if (!is.null(max_income) && annual_income_val > max_income) {
         showModal(modalDialog(
           title = "Income Limit Exceeded",
@@ -457,31 +447,16 @@ server <- function(input, output, session) {
   })
   
   #### Neighborhood Selection Logic ####
-  # This section manages how neighborhoods are selected and deselected.
-  # - "Select All" selects all neighborhoods citywide.
-  # - "Clear All" clears all selections.
-  # - Each region has a "select all" checkbox controlling all neighborhoods in that region.
-  # - Individual neighborhood checkboxes allow fine-grained selection.
-  # - The logic ensures that when the user deselects one neighborhood (after "select all"), 
-  #   it doesn't clear the entire region or city. Instead, we rebuild the preferred list from all current selections.
-  #
-  # Key points:
-  # - preferred_neighborhoods() holds the current selection of neighborhoods.
-  # - We always reconstruct preferred_neighborhoods by reading all currently selected neighborhoods from the UI.
-  # - This prevents unintended bulk removals and ensures stable incremental updates.
   
   observeEvent(input$select_all, {
-    # User clicked "Select All" citywide: select every neighborhood.
     all_neighborhoods <- unlist(region_list)
     preferred_neighborhoods(all_neighborhoods)
     
-    # Update each region's checkbox group to show all neighborhoods as selected
     lapply(names(region_list), function(region_name) {
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       updateCheckboxGroupInput(session, neighborhood_input_id, selected = region_list[[region_name]])
     })
     
-    # Mark all region-level "Select All" checkboxes as TRUE
     lapply(names(region_list), function(region_name) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
       updateCheckboxInput(session, region_id, value = TRUE)
@@ -491,16 +466,13 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$clear_all, {
-    # User clicked "Clear All": remove all neighborhoods from preferred selection.
     preferred_neighborhoods(character())
     
-    # Clear out all checkbox group inputs
     lapply(names(region_list), function(region_name) {
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       updateCheckboxGroupInput(session, neighborhood_input_id, selected = character(0))
     })
     
-    # Reset all region-level checkboxes to FALSE
     lapply(names(region_list), function(region_name) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
       updateCheckboxInput(session, region_id, value = FALSE)
@@ -510,9 +482,7 @@ server <- function(input, output, session) {
   })
   
   output$philly_map_selection <- renderLeaflet({
-    # Renders the neighborhood map.
-    # Neighborhoods are colored differently if they are in the preferred selection.
-    leaflet(data = neigh_bounds) %>%
+    leaflet(data = neigh_bounds, options = leafletOptions(minZoom = 11, maxZoom = 12)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
       setView(lng = -75.13406, lat = 40.00761, zoom = 12) %>%
       setMaxBounds(
@@ -530,8 +500,6 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$philly_map_selection_shape_click, {
-    # Allows toggling a neighborhood by clicking it on the map.
-    # If already selected, remove it; if not selected, add it.
     clicked_neighborhood <- input$philly_map_selection_shape_click$id
     current_preferences <- preferred_neighborhoods()
     
@@ -544,20 +512,16 @@ server <- function(input, output, session) {
   })
   
   output$region_neighborhood_selection_ui <- renderUI({
-    # Dynamically generates UI for each region: a "Select All" checkbox and a set of checkboxes for each neighborhood.
     lapply(names(region_list), function(region_name) {
       region_id <- paste0("region_", gsub(" ", "_", region_name))
       neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
       
-      # Determine which neighborhoods are currently selected for this region
       selected_neighborhoods <- intersect(region_list[[region_name]], preferred_neighborhoods())
       all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
       
       div(
         class = "region-container",
-        # Region-level "Select All" checkbox
         checkboxInput(region_id, label = region_name, value = all_selected),
-        # Individual neighborhood checkboxes for this region
         checkboxGroupInput(
           inputId = neighborhood_input_id,
           label = NULL,
@@ -569,7 +533,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # Observers for region-level "Select All"
   lapply(names(region_list), function(region_name) {
     region_id <- paste0("region_", gsub(" ", "_", region_name))
     
@@ -579,71 +542,44 @@ server <- function(input, output, session) {
       selected_in_region <- intersect(region_neighs, current_preferences)
       
       if (isTRUE(input[[region_id]])) {
-        # Region-level box checked: add all neighborhoods of this region
         preferred_neighborhoods(unique(c(current_preferences, region_neighs)))
       } else {
-        # Region-level box unchecked:
-        # Check if all neighborhoods in this region are currently selected
         if (length(selected_in_region) == length(region_neighs)) {
-          # All were selected, now user unchecks region-level: remove them all
           preferred_neighborhoods(setdiff(current_preferences, region_neighs))
         } else {
-          # Some were already unchecked; do nothing
-          # (No mass removal is performed)
+          # Do nothing if not all were selected
         }
       }
     }, ignoreInit = TRUE)
   })
   
-  
-  # Observers for individual neighborhood checkboxes within each region
   lapply(names(region_list), function(region_name) {
     region_id <- paste0("region_", gsub(" ", "_", region_name))
     neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
     
     observeEvent(input[[neighborhood_input_id]], {
-      # When any neighborhood selection changes, we rebuild the entire preferred list
-      # from all currently selected neighborhoods across all regions.
-      
-      # Gather all currently selected neighborhoods across all regions
       all_current_selections <- unlist(lapply(names(region_list), function(r_name) {
-        n_input_id <- paste0("neighborhoods_", gsub(" ", "_", r_name))
-        input[[n_input_id]]
+        input[[paste0("neighborhoods_", gsub(" ", "_", r_name))]]
       }))
       
-      # Update preferred_neighborhoods with the combined selection
       preferred_neighborhoods(unique(all_current_selections))
       
-      # Update this region's "Select All" checkbox based on whether all are selected
-      selected_neighborhoods <- input[[neighborhood_input_id]]
-      all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
-      updateCheckboxInput(session, region_id, value = all_selected)
+      # Region checkbox updated via renderUI reactivity
     }, ignoreInit = TRUE)
   })
   
-  observeEvent(preferred_neighborhoods(), {
-    # Whenever preferred_neighborhoods changes, we synchronize the UI to match.
-    # This ensures consistency: if we deselect a neighborhood through the map or another interface,
-    # the checkbox groups and region checkboxes remain up-to-date.
-    lapply(names(region_list), function(region_name) {
-      neighborhood_input_id <- paste0("neighborhoods_", gsub(" ", "_", region_name))
-      selected_neighborhoods <- intersect(region_list[[region_name]], preferred_neighborhoods())
-      
-      # Update checkbox group input for this region
-      updateCheckboxGroupInput(session, neighborhood_input_id, selected = selected_neighborhoods)
-      
-      # Update the region-level "Select All" checkbox
-      region_id <- paste0("region_", gsub(" ", "_", region_name))
-      all_selected <- length(selected_neighborhoods) == length(region_list[[region_name]])
-      updateCheckboxInput(session, region_id, value = all_selected)
-    })
-  })
+  # Compute vouchers usage category
+  classify_vouchers <- function(vouchers_val, median_val) {
+    if (vouchers_val == 0) {
+      "None"
+    } else if (vouchers_val < median_val) {
+      "Few"
+    } else {
+      "Many"
+    }
+  }
   
   #### Matched Neighborhoods Logic ####
-  # The following reactive expression (neighs_matched) identifies the top neighborhoods that
-  # match user preferences based on their feature importance selections and currently preferred neighborhoods.
-  # It calculates a weighted score for each neighborhood and returns the top 5.
-  
   neighs_matched <- reactive({
     preference_weights <- sapply(names(features), function(feature_key) {
       as.numeric(input[[paste0("importance_", gsub(" ", "_", feature_key))]])
@@ -667,13 +603,11 @@ server <- function(input, output, session) {
     recommended_data_no_geom <- st_drop_geometry(recommended_data)
     feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
     
-    # Convert to numeric and handle NAs
     for (feature in names(features)) {
       feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
       feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
     }
     
-    # Calculate weighted scores
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
     recommended_data$score <- rowMeans(weighted_features)
     
@@ -687,11 +621,6 @@ server <- function(input, output, session) {
   })
   
   #### Recommended Neighborhoods Logic ####
-  # The following reactive expression (neighs_rec) identifies additional recommended neighborhoods
-  # that match user preferences but are not currently within the user's preferred selection.
-  # Similar to neighs_matched, it calculates a score and returns the top 5 neighborhoods that
-  # might still be worth considering.
-  
   neighs_rec <- reactive({
     preference_weights <- sapply(names(features), function(feature_key) {
       as.numeric(input[[paste0("importance_", gsub(" ", "_", feature_key))]])
@@ -715,17 +644,14 @@ server <- function(input, output, session) {
     recommended_data_no_geom <- st_drop_geometry(recommended_data)
     feature_data <- recommended_data_no_geom[, names(features), drop = FALSE]
     
-    # Convert to numeric and handle NAs
     for (feature in names(features)) {
       feature_data[[feature]] <- as.numeric(as.character(feature_data[[feature]]))
       feature_data[[feature]][is.na(feature_data[[feature]])] <- 0
     }
     
-    # Calculate weighted scores
     weighted_features <- sweep(feature_data, 2, preference_weights[colnames(feature_data)], `*`)
     recommended_data$score <- rowMeans(weighted_features)
     
-    # Exclude neighborhoods already matched if they reappear
     if (nrow(recommended_data) > 0 && any(recommended_data$neighborhood %in% matched_neighborhoods)) {
       recommended_data <- recommended_data[!recommended_data$neighborhood %in% matched_neighborhoods, ]
     }
@@ -740,7 +666,6 @@ server <- function(input, output, session) {
   })
   
   output$results_map <- renderLeaflet({
-    # Displays the final results map showing Matched and Recommended neighborhoods.
     rec_neigh <- neighs_rec()
     matched_neigh <- neighs_matched()
     hh_size <- household_size()
@@ -772,9 +697,9 @@ server <- function(input, output, session) {
     req(current_question() == 7)
     monthly_payment <- monthly_payment()
     
-    map <- leaflet(data = nb, options = leafletOptions(minZoom = 10)) %>%
+    map <- leaflet(data = nb, options = leafletOptions(minZoom = 11, maxZoom = 13)) %>%
       addProviderTiles(providers$CartoDB.Voyager) %>%
-      setView(lng = -75.13406, lat = 40.00761, zoom = 11) %>%
+      setView(lng = -75.13406, lat = 40.00761, zoom = 12) %>%
       setMaxBounds(lng1 = -75.28027, lat1 = 39.867, lng2 = -74.95576, lat2 = 40.13799) %>%
       addPolygons(
         fillColor = "black",
@@ -830,19 +755,28 @@ server <- function(input, output, session) {
       addLabelOnlyMarkers(
         data = neighs_matched(),
         lng = ~ lon, lat = ~ lat, label = ~ tract_neigh,
-        labelOptions = labelOptions(noHide = TRUE, direction = "top", textOnly = TRUE)
+        labelOptions = labelOptions(
+          noHide = TRUE,
+          direction = "top",
+          textOnly = TRUE,
+          style = list("font-weight" = "bold", "color" = "gray15")
+        )
       ) %>%
       addLabelOnlyMarkers(
         data = neighs_rec(),
         lng = ~ lon, lat = ~ lat, label = ~ tract_neigh,
-        labelOptions = labelOptions(noHide = TRUE, direction = "top", textOnly = TRUE)
+        labelOptions = labelOptions(
+          noHide = TRUE,
+          direction = "top",
+          textOnly = TRUE,
+          style = list("font-weight" = "bold", "color" = "gray15")
+        )
       ) %>%
       addLegend(position = "bottomleft", pal = pal, values = c("Matched", "Recommended"))
     map
   })
   
   output$neighborhood_details_table <- renderUI({
-    # Displays a summary table of the matched neighborhoods, including rent and contribution details.
     matched_neigh <- neighs_matched()
     hh_size <- household_size()
     max_rent = case_when(
@@ -856,17 +790,25 @@ server <- function(input, output, session) {
       hh_size == 8 ~ matched_neigh$cost_8br
     )
     monthly_payment_value <- monthly_payment()
+    
+    # Classify vouchers usage
+    vouchers_values <- matched_neigh$vouchers
+    vouchers_used <- ifelse(vouchers_values == 0, "None",
+                            ifelse(vouchers_values < vouchers_median, "Few", "Many"))
+    
     details_table <- data.frame(
       Neighborhood = matched_neigh$tract_neigh,
       ZIP_Code = matched_neigh$zip_code,
       Max_Rent = paste0("$", formatC(max_rent, big.mark = ",")),
       HUD_Pays = paste0("$", formatC(max_rent - monthly_payment_value, big.mark = ",")),
-      Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
+      Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ",")),
+      Vouchers_used_here = vouchers_used
     )
+    
     table_html <- paste(
       "<table style='width:50%; border-collapse: collapse;'>",
       "<thead><tr style='background-color: darkcyan; color: white;'>",
-      "<th>Neighborhood</th><th>ZIP Code</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
+      "<th>Neighborhood</th><th>ZIP Code</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th><th>Vouchers used here</th>",
       "</tr></thead>",
       "<tbody>",
       paste(apply(details_table, 1, function(row) {
@@ -877,6 +819,7 @@ server <- function(input, output, session) {
           "<td>", row[3], "</td>",
           "<td>", row[4], "</td>",
           "<td>", row[5], "</td>",
+          "<td>", row[6], "</td>",
           "</tr>"
         )
       }), collapse = ""),
@@ -892,7 +835,6 @@ server <- function(input, output, session) {
   })
   
   output$neighborhood_recs_table <- renderUI({
-    # Displays a summary table of recommended neighborhoods that are not currently matched but might be of interest.
     rec_neigh <- neighs_rec()
     hh_size <- household_size()
     if (nrow(rec_neigh) == 0) {
@@ -909,17 +851,25 @@ server <- function(input, output, session) {
       hh_size == 8 ~ rec_neigh$cost_8br
     )
     monthly_payment_value <- monthly_payment()
+    
+    # Classify vouchers usage
+    vouchers_values <- rec_neigh$vouchers
+    vouchers_used <- ifelse(vouchers_values == 0, "None",
+                            ifelse(vouchers_values < vouchers_median, "Few", "Many"))
+    
     details_table <- data.frame(
       Neighborhood = rec_neigh$tract_neigh,
       ZIP_Code = rec_neigh$zip_code,
       Max_Rent = paste0("$", formatC(max_rent, big.mark = ",")),
       HUD_Pays = paste0("$", formatC(max_rent - monthly_payment_value, big.mark = ",")),
-      Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ","))
+      Your_Contribution = paste0("$", formatC(as.numeric(monthly_payment_value), big.mark = ",")),
+      Vouchers_used_here = vouchers_used
     )
+    
     table_html <- paste(
       "<table style='width:50%; border-collapse: collapse;'>",
-      "<thead><tr style='background-color: darkcyan; color: white;'>",
-      "<th>Neighborhood</th><th>ZIP Code</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th>",
+      "<thead><tr style='background-color: darkcyan; color = white;'>",
+      "<th>Neighborhood</th><th>ZIP Code</th><th>Max Rent</th><th>HUD pays</th><th>You Pay</th><th>Vouchers used here</th>",
       "</tr></thead>",
       "<tbody>",
       paste(apply(details_table, 1, function(row) {
@@ -930,6 +880,7 @@ server <- function(input, output, session) {
           "<td>", row[3], "</td>",
           "<td>", row[4], "</td>",
           "<td>", row[5], "</td>",
+          "<td>", row[6], "</td>",
           "</tr>"
         )
       }), collapse = ""),
